@@ -2600,7 +2600,7 @@ function viewParentProgress() {
   ).length;
   
   // Get all goals from plan
-  const allGoals = plan?.goals || [];
+  const allGoals = getAllPlanGoals(plan).map(g => g.goal);
   
   // Calculate goal completion from session logs
   const sessionLogs = STATE.data.sessionLogs.filter(l => l.studentId === child.id);
