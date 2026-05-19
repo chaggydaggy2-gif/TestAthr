@@ -7749,6 +7749,19 @@ window.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  // Wait for Auth to be available (in case scripts load out of order)
+  let attempts = 0;
+  while (!window.Auth && attempts < 50) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    attempts++;
+  }
+
+  if (!window.Auth) {
+    console.error('Auth module failed to load');
+    handleRoute();
+    return;
+  }
+
   // Always try to restore session first — regardless of hash
   // This fixes the stuck/blank screen after disconnect or tab reopen
   try {
