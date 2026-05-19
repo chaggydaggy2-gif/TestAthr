@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#6E5BC7">
+  <title>أثر — نظام متابعة الطالبات</title>
+  <meta name="description" content="أثر — نظام متابعة الطالبات. منصة تواصل بين معلمات التربية الخاصة وأولياء الأمور.">
+  <meta property="og:title" content="أثر — نظام متابعة الطالبات">
+  <meta property="og:description" content="منصة تواصل بين المعلمة وولي الأمر لمتابعة الطالبات يومياً.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ar_SA">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="styles.css?v=66">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="أثر">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%236E5BC7'/><stop offset='1' stop-color='%234FBF9C'/></linearGradient></defs><rect width='64' height='64' rx='16' fill='url(%23g)'/><text x='50%25' y='62%25' text-anchor='middle' fill='white' font-family='Tajawal, sans-serif' font-size='40' font-weight='800'>أ</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%236E5BC7'/><stop offset='1' stop-color='%234FBF9C'/></linearGradient></defs><rect width='192' height='192' rx='42' fill='url(%23g)'/><text x='50%25' y='62%25' text-anchor='middle' fill='white' font-family='sans-serif' font-size='110' font-weight='800'>أ</text></svg>">
+</head>
+<body>
+  <div id="root"></div>
+  <!-- Supabase JS Client - Using unpkg CDN -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    // Initialize Supabase immediately after library loads
+    (function() {
+      const SUPABASE_URL = 'https://dgidgwafuvzveonoalhb.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnaWRnd2FmdXZ6dmVvbm9hbGhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMjI2NTIsImV4cCI6MjA5NDU5ODY1Mn0.WhtVRY9FadrD2JN21GvvbOE-1WGA7CROHI3enq3wWTM';
+      const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnaWRnd2FmdXZ6dmVvbm9hbGhiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTAyMjY1MiwiZXhwIjoyMDk0NTk4NjUyfQ.k10MVLEG-BqTQmWr2unEwL_cwAtJxIaqtmKOLhA-v6Q';
+      
+      console.log('🔧 أثر — تهيئة Supabase...');
+      console.log('📦 Supabase available:', typeof window.supabase);
+      
+      if (window.supabase && window.supabase.createClient) {
+        // Regular client for normal operations
+        window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Admin client for creating users (only used by principal)
+        window.supabaseAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+        
+        console.log('✅ Supabase configured successfully');
+        console.log('🔗 Connected to:', SUPABASE_URL);
+        console.log('🔐 Admin client ready:', !!window.supabaseAdmin);
+      } else {
+        console.error('❌ Supabase library not loaded');
+      }
+    })();
+  </script>
+  <script src="auth.js?v=79"></script>
+  <script src="data.js?v=79"></script>
+  <script src="app.js?v=79"></script>
+  <script>
+    // Test Supabase connection
+    setTimeout(() => {
+      if (window.supabaseClient) {
+        console.log('🧪 Testing Supabase connection...');
+        window.supabaseClient.from('schools').select('count').then(result => {
+          if (result.error) {
+            console.error('❌ Supabase connection test FAILED:', result.error);
+          } else {
+            console.log('✅ Supabase connection test PASSED');
+          }
+        });
+      }
+    }, 1000);
+  </script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
