@@ -5958,41 +5958,48 @@ function generateInitialReport(student) {
   const ageY = student.age || 0;
   lines.push(`الطالبة ${student.name} تبلغ من العمر ${arNum(ageY)} سنوات تقريباً، في الصف ${student.grade}.`);
 
-  // Receptive language summary
-  const rSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'receptive');
-  const rIssues = rSec.questions.filter(q => a[q.id] === 'partial' || a[q.id] === 'not').length;
-  const rTotal = rSec.questions.length;
-  if (rIssues === 0) lines.push('لغتها الاستقبالية: جيدة.');
-  else if (rIssues / rTotal < 0.4) lines.push('لغتها الاستقبالية: لا بأس بها ولكن تحتاج إلى تطوير وإثراء.');
-  else lines.push('لغتها الاستقبالية: ضعيفة وتحتاج إلى تدريب مكثف.');
-
-  // Expressive
-  const eSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'expressive');
-  const eIssues = eSec.questions.filter(q => a[q.id] === 'partial' || a[q.id] === 'not').length;
-  const eDetails = [];
-  if (a['e_animals'] && a['e_animals'] !== 'mastered') eDetails.push('تسمية الأشياء في بعض المجموعات الضمنية');
-  if (a['e_verbs']  && a['e_verbs']  !== 'mastered') eDetails.push('صيغ الأفعال');
-  if (a['g_dual']   && a['g_dual']   !== 'mastered') eDetails.push('الجموع والمثنى');
-  if (a['e_locations'] && a['e_locations'] !== 'mastered') eDetails.push('ظروف المكان');
-  if (eIssues === 0) lines.push('لغتها التعبيرية: جيدة.');
-  else lines.push(`لغتها التعبيرية: ضعيفة تتمثل في ضعف${eDetails.length ? ' في ' + eDetails.join(' و') : ''}.`);
-
-  // Sounds
-  const sSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'sounds');
-  const distorted = sSec.questions.filter(q => a[q.id] === 'distort').map(q => PLAN_RULES.sounds.sound_letters[q.goal]);
-  const omitted   = sSec.questions.filter(q => a[q.id] === 'omit').map(q => PLAN_RULES.sounds.sound_letters[q.goal]);
-  if (distorted.length || omitted.length) {
-    let line = 'لديها اضطرابات نطق متمثلة بـ';
-    if (omitted.length) line += ` حذف للأصوات (${omitted.join('، ')})`;
-    if (distorted.length) line += `${omitted.length ? ' و' : ' '}إبدال/تحريف للأصوات (${distorted.join('، ')})`;
-    line += '. تحتاج إلى تدريبات نطق مكثفة.';
-    lines.push(line);
+  // Section 5: Language skills summary
+  const langSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'language_informal');
+  if (langSec) {
+    const langIssues = langSec.questions.filter(q => 
+      q.type !== 'header' && q.type !== 'text' && (a[q.id] === 'partial' || a[q.id] === 'not')
+    ).length;
+    const langTotal = langSec.questions.filter(q => q.type !== 'header' && q.type !== 'text').length;
+    
+    if (langIssues === 0) {
+      lines.push('المهارات اللغوية: ممتازة، جميع المهارات متقنة.');
+    } else if (langIssues / langTotal < 0.3) {
+      lines.push('المهارات اللغوية: جيدة بشكل عام مع بعض المجالات التي تحتاج إلى تطوير.');
+    } else if (langIssues / langTotal < 0.6) {
+      lines.push('المهارات اللغوية: متوسطة، تحتاج إلى تدريب وتطوير في عدة مجالات.');
+    } else {
+      lines.push('المهارات اللغوية: تحتاج إلى تدريب مكثف وخطة تدخل شاملة.');
+    }
   }
 
-  // History bits
-  if (a['kindergarten'] === 'no') lines.push('لم تلتحق ببرامج رياض أطفال.');
-  if (a['prev_diagnosis'] === 'yes' && a['diagnosis_text']) lines.push(`تشخيص سابق: ${a['diagnosis_text']}.`);
-  if (a['hearing_loss'] === 'yes') lines.push('تعاني من ضعف سمعي يستوجب المتابعة الطبية.');
+  // Section 6: Auditory skills summary
+  const artSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'articulation');
+  if (artSec) {
+    const artIssues = artSec.questions.filter(q => 
+      q.type !== 'header' && q.type !== 'text' && (a[q.id] === 'sometimes' || a[q.id] === 'rarely')
+    ).length;
+    const artTotal = artSec.questions.filter(q => q.type !== 'header' && q.type !== 'text').length;
+    
+    if (artIssues === 0) {
+      lines.push('المهارات السمعية والإدراكية: ممتازة، جميع المهارات متقنة.');
+    } else if (artIssues / artTotal < 0.3) {
+      lines.push('المهارات السمعية والإدراكية: جيدة بشكل عام مع بعض المجالات التي تحتاج إلى تحسين.');
+    } else if (artIssues / artTotal < 0.6) {
+      lines.push('المهارات السمعية والإدراكية: متوسطة، تحتاج إلى تدريب منتظم.');
+    } else {
+      lines.push('المهارات السمعية والإدراكية: تحتاج إلى تدخل مكثف لتطوير الإدراك السمعي.');
+    }
+  }
+
+  // History bits from section 1 if available
+  if (a['kindergarten_check'] === 'no') lines.push('لم تلتحق ببرامج رياض أطفال.');
+  if (a['prev_diagnosis'] === 'yes' && a['diagnosis_result']) lines.push(`تشخيص سابق: ${a['diagnosis_result']}.`);
+  if (a['hearing_test_recent'] === 'yes') lines.push('تم إجراء فحص سمعي حديث.');
 
   return lines.join('\n\n');
 }
