@@ -5219,7 +5219,7 @@ const PRE_ASSESSMENT_SECTIONS = [
   {
     id: 'articulation',
     num: 6,
-    title: '(الادراك) : القدرة على تحديد وجود / غياب الصوت',
+    title: 'تقييم المهارات السمعية',
     cols: ['دائماً','أحياناً','نادراً'],
     questions: [
       { id: 'art_discriminate_presence', label: 'استخدام المحل السمعي طول أو ساعات الاستيقاظ', type: 'eval3' },
