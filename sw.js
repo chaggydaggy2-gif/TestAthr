@@ -4,7 +4,7 @@
    - JS / CSS:    network-first (always fresh code, cache as offline fallback)
    - Everything else (fonts, images, manifest): cache-first
 */
-const CACHE = 'athr-v68-supabase';
+const CACHE = 'athr-v69-supabase';
 const ASSETS = [
   './',
   './index.html',

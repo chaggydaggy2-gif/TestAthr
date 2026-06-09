@@ -5889,45 +5889,62 @@ function generatePlanFromAssessment(student) {
   // Group: long-term goal → array of short-term goals
   const groups = [];
 
-  ['receptive','expressive','grammar','pragmatic'].forEach(catKey => {
-    const cat = PLAN_RULES[catKey];
-    const sec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === catKey);
-    const shortGoals = [];
-    sec.questions.forEach(q => {
+  // ONLY generate from section 5 (language_informal) and section 6 (articulation)
+  // Section 5: تقييم (غير رسمي) للمهارات اللغوية
+  const langSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'language_informal');
+  if (langSec) {
+    const langShorts = [];
+    langSec.questions.forEach(q => {
+      // Skip header type questions (they are just visual separators)
+      if (q.type === 'header') return;
+      
       const ans = answers[q.id];
-      // Trigger if answer is partial/not-mastered
+      // Only include if partial or not mastered
       if (ans === 'partial' || ans === 'not') {
-        const goalText = cat.short[q.goal];
-        if (goalText && !shortGoals.includes(goalText)) shortGoals.push(goalText);
+        // Use the question label as the goal
+        const goalText = q.label;
+        if (goalText && !langShorts.includes(goalText)) {
+          langShorts.push(goalText);
+        }
       }
     });
-    if (shortGoals.length) groups.push({ long: cat.long, shorts: shortGoals, category: catKey });
-  });
-
-  // Memory
-  const memSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'memory');
-  const memShorts = [];
-  memSec.questions.forEach(q => {
-    const ans = answers[q.id];
-    if (ans === 'sometimes' || ans === 'rarely') {
-      const goalText = PLAN_RULES.memory.short[q.goal];
-      if (goalText && !memShorts.includes(goalText)) memShorts.push(goalText);
+    
+    if (langShorts.length) {
+      groups.push({ 
+        long: 'تحسين المهارات اللغوية الشاملة', 
+        shorts: langShorts, 
+        category: 'language_informal' 
+      });
     }
-  });
-  if (memShorts.length) groups.push({ long: PLAN_RULES.memory.long, shorts: memShorts, category: 'memory' });
+  }
 
-  // Sounds
-  const soundSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'sounds');
-  const soundShorts = [];
-  soundSec.questions.forEach(q => {
-    const ans = answers[q.id];
-    if (ans === 'distort' || ans === 'omit') {
-      const letter = PLAN_RULES.sounds.sound_letters[q.goal];
-      const mads = PLAN_RULES.sounds.sound_mads[q.goal];
-      if (letter) soundShorts.push(...PLAN_RULES.sounds.sound_template(letter, mads));
+  // Section 6: تقييم المهارات السمعية
+  const artSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'articulation');
+  if (artSec) {
+    const artShorts = [];
+    artSec.questions.forEach(q => {
+      // Skip header type questions
+      if (q.type === 'header') return;
+      
+      const ans = answers[q.id];
+      // For articulation section, check for sometimes/rarely (or partial/not if using eval3)
+      if (ans === 'sometimes' || ans === 'rarely' || ans === 'partial' || ans === 'not') {
+        // Use the question label as the goal
+        const goalText = q.label;
+        if (goalText && !artShorts.includes(goalText)) {
+          artShorts.push(goalText);
+        }
+      }
+    });
+    
+    if (artShorts.length) {
+      groups.push({ 
+        long: 'تطوير المهارات السمعية والإدراكية', 
+        shorts: artShorts, 
+        category: 'articulation' 
+      });
     }
-  });
-  if (soundShorts.length) groups.push({ long: PLAN_RULES.sounds.long, shorts: soundShorts, category: 'sounds' });
+  }
 
   // If assessment exists but didn't surface any goals (e.g. all "متقن"), fall back to default
   return groups.length ? groups : generateDefaultPlanGroups();
