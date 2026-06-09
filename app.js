@@ -3394,7 +3394,7 @@ function viewParentSettings() {
 /* =========================================================
    EVENT DELEGATION
    ========================================================= */
-document.addEventListener('click', (e) => {
+document.addEventListener('click', async (e) => {
   const t = e.target;
 
   // Login tile
@@ -3727,18 +3727,22 @@ document.addEventListener('click', (e) => {
       const st = studentBy(sid);
       if (!st) return;
       if (!confirm(`أرشفة الطالبة "${st.name}"؟ ستنقل لقسم الأرشيف في الإعدادات.`)) return;
+      
       st.archived = true;
       st.archivedAt = new Date().toISOString().slice(0,10);
       
       // Update in Supabase
       if (window.supabaseClient) {
-        window.supabaseClient
+        const { error } = await window.supabaseClient
           .from('students')
           .update({ archived: true, archived_at: st.archivedAt })
-          .eq('id', sid)
-          .then(({ error }) => {
-            if (error) console.error('Error archiving student in Supabase:', error);
-          });
+          .eq('id', sid);
+        
+        if (error) {
+          console.error('Error archiving student in Supabase:', error);
+          toast('حدث خطأ في الأرشفة', 'error');
+          return;
+        }
       }
       
       persistState();
@@ -3751,18 +3755,22 @@ document.addEventListener('click', (e) => {
       const sid = action.getAttribute('data-sid');
       const st = studentBy(sid);
       if (!st) return;
+      
       st.archived = false;
       st.archivedAt = null;
       
       // Update in Supabase
       if (window.supabaseClient) {
-        window.supabaseClient
+        const { error } = await window.supabaseClient
           .from('students')
           .update({ archived: false, archived_at: null })
-          .eq('id', sid)
-          .then(({ error }) => {
-            if (error) console.error('Error restoring student in Supabase:', error);
-          });
+          .eq('id', sid);
+        
+        if (error) {
+          console.error('Error restoring student in Supabase:', error);
+          toast('حدث خطأ في الاستعادة', 'error');
+          return;
+        }
       }
       
       persistState();
@@ -3784,13 +3792,16 @@ document.addEventListener('click', (e) => {
       
       // Delete from Supabase first
       if (window.supabaseClient) {
-        window.supabaseClient
+        const { error } = await window.supabaseClient
           .from('students')
           .delete()
-          .eq('id', sid)
-          .then(({ error }) => {
-            if (error) console.error('Error deleting student from Supabase:', error);
-          });
+          .eq('id', sid);
+        
+        if (error) {
+          console.error('Error deleting student from Supabase:', error);
+          toast('حدث خطأ في الحذف', 'error');
+          return;
+        }
       }
       
       STATE.data.students = STATE.data.students.filter(s => s.id !== sid);
