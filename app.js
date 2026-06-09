@@ -5168,14 +5168,7 @@ const PRE_ASSESSMENT_SECTIONS = [
       { id: 'inf_prepositions', label: 'استخدام حروف الجر', type: 'eval3' },
       { id: 'inf_connectors', label: 'استخدام أدوات الربط', type: 'eval3' },
       { id: 'inf_place_adverbs', label: 'استخدام ظرف المكان', type: 'eval3' },
-    ],
-  },
-  {
-    id: 'fluency_disorder',
-    num: 6,
-    title: 'إذا كانت الحالة تعاني من اضطراب في الطلاقة تستكمل البيانات التالية',
-    note: 'نوع الإضطراب في الطلاقة',
-    questions: [
+      { id: 'inf_fluency_disorder_note', label: 'إذا كانت الحالة تعاني من اضطراب في الطلاقة تستكمل البيانات التالية', type: 'header' },
       { id: 'flu_type_repeat', label: 'تكرار', type: 'header' },
       { id: 'flu_repeat_word_part', label: 'تكرار جزء من الكلمة', type: 'yn' },
       { id: 'flu_repeat_full_word', label: 'تكرار كلمة كاملة', type: 'yn' },
@@ -5200,7 +5193,7 @@ const PRE_ASSESSMENT_SECTIONS = [
   },
   {
     id: 'sounds',
-    num: 7,
+    num: 6,
     title: 'مخارج الأصوات العربية (٢٨ صوت)',
     cols: ['سليم','محرّف','حذف'],
     note: 'الصوت غير السليم يولّد ٥ أهداف: مستقل + مع المدود + أول/وسط/آخر الكلمة',
