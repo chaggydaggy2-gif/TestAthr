@@ -5895,8 +5895,8 @@ function generatePlanFromAssessment(student) {
   if (langSec) {
     const langShorts = [];
     langSec.questions.forEach(q => {
-      // Skip header type questions (they are just visual separators)
-      if (q.type === 'header') return;
+      // Skip header and text type questions (only include eval3, yn, pair types)
+      if (q.type === 'header' || q.type === 'text') return;
       
       const ans = answers[q.id];
       // Only include if partial or not mastered
@@ -5923,11 +5923,11 @@ function generatePlanFromAssessment(student) {
   if (artSec) {
     const artShorts = [];
     artSec.questions.forEach(q => {
-      // Skip header type questions
-      if (q.type === 'header') return;
+      // Skip header and text type questions (only include eval3 type with دائماً/أحياناً/نادراً)
+      if (q.type === 'header' || q.type === 'text') return;
       
       const ans = answers[q.id];
-      // For articulation section, check for sometimes/rarely (or partial/not if using eval3)
+      // For articulation section with eval3, check for sometimes/rarely (أحياناً/نادراً)
       if (ans === 'sometimes' || ans === 'rarely' || ans === 'partial' || ans === 'not') {
         // Use the question label as the goal
         const goalText = q.label;
