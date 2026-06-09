@@ -5884,7 +5884,9 @@ function generatePlanFromAssessment(student) {
   const data = student.forms?.preAssessment;
   const answers = data?.answers || {};
   const hasAnswers = Object.keys(answers).length > 0;
-  if (!hasAnswers) return generateDefaultPlanGroups();
+  
+  // If no assessment data, return empty (no default plan)
+  if (!hasAnswers) return [];
 
   // Group: long-term goal → array of short-term goals
   const groups = [];
@@ -5946,8 +5948,9 @@ function generatePlanFromAssessment(student) {
     }
   }
 
-  // If assessment exists but didn't surface any goals (e.g. all "متقن"), fall back to default
-  return groups.length ? groups : generateDefaultPlanGroups();
+  // Return empty array if no goals needed (everything is mastered)
+  // Do NOT fall back to default plan
+  return groups;
 }
 
 function generateInitialReport(student) {
