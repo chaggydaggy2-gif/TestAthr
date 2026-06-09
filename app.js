@@ -3583,7 +3583,16 @@ document.addEventListener('click', (e) => {
       const sid = action.getAttribute('data-sid');
       const st = studentBy(sid);
       if (!st) return;
-      const hasAssessment = !!(st.forms?.preAssessment?.answers && Object.keys(st.forms.preAssessment.answers).length > 0);
+      
+      // Check if assessment is completed
+      const hasAssessment = !!(st.forms?.preAssessment?.completed);
+      const hasAnswers = !!(st.forms?.preAssessment?.answers && Object.keys(st.forms.preAssessment.answers).length > 0);
+      
+      if (!hasAssessment || !hasAnswers) {
+        toast('يجب إكمال التقييم القبلي أولاً قبل توليد الخطة', 'error');
+        return;
+      }
+      
       const groups = generatePlanFromAssessment(st);
       let plan = STATE.data.plans.find(p => p.studentId === sid);
       
@@ -3606,12 +3615,16 @@ document.addEventListener('click', (e) => {
         STATE.data.plans.push(plan);
       }
       
-      if (!groups) return;
+      if (!groups || groups.length === 0) {
+        toast('جميع المهارات متقنة! لا حاجة لتوليد خطة 🎉', 'success');
+        return;
+      }
+      
       plan.groups = groups;
       plan.generatedAt = new Date().toISOString().slice(0,10);
-      plan.initialReport = hasAssessment ? generateInitialReport(st) : `الطالبة ${st.name} في ${st.grade}.\n\nتم توليد خطة افتراضية تغطي أربعة محاور: الانتباه والتركيز، اللغة الاستقبالية، اللغة التعبيرية، ومخارج الأصوات.\n\nلتخصيص الخطة بدقة لاحتياجات الطالبة، يُستحسن استكمال التقييم القبلي من تاب «النماذج».`;
+      plan.initialReport = generateInitialReport(st);
       plan.goals = groups.flatMap(g => g.shorts);
-      const skillMap = { receptive:'sk5', expressive:'sk6', grammar:'sk6', pragmatic:'sk4', memory:'sk4', sounds:'sk3' };
+      const skillMap = { language_informal:'sk6', articulation:'sk3' };
       plan.targetSkillIds = [...new Set(groups.map(g => skillMap[g.category]).filter(Boolean))];
       plan.progress = plan.targetSkillIds.map((skId, i) => ({
         skillId: skId,
@@ -3716,6 +3729,18 @@ document.addEventListener('click', (e) => {
       if (!confirm(`أرشفة الطالبة "${st.name}"؟ ستنقل لقسم الأرشيف في الإعدادات.`)) return;
       st.archived = true;
       st.archivedAt = new Date().toISOString().slice(0,10);
+      
+      // Update in Supabase
+      if (window.supabaseClient) {
+        window.supabaseClient
+          .from('students')
+          .update({ archived: true, archived_at: st.archivedAt })
+          .eq('id', sid)
+          .then(({ error }) => {
+            if (error) console.error('Error archiving student in Supabase:', error);
+          });
+      }
+      
       persistState();
       closeModal();
       toast('تمت أرشفة الطالبة 📦');
@@ -3728,6 +3753,18 @@ document.addEventListener('click', (e) => {
       if (!st) return;
       st.archived = false;
       st.archivedAt = null;
+      
+      // Update in Supabase
+      if (window.supabaseClient) {
+        window.supabaseClient
+          .from('students')
+          .update({ archived: false, archived_at: null })
+          .eq('id', sid)
+          .then(({ error }) => {
+            if (error) console.error('Error restoring student in Supabase:', error);
+          });
+      }
+      
       persistState();
       toast('تمت استعادة الطالبة');
       handleRoute();
@@ -3744,6 +3781,18 @@ document.addEventListener('click', (e) => {
       const st = studentBy(sid);
       if (!st) return;
       if (!confirm(`حذف الطالبة "${st.name}" نهائياً مع كل بياناتها؟ لن يمكن استرجاعها.`)) return;
+      
+      // Delete from Supabase first
+      if (window.supabaseClient) {
+        window.supabaseClient
+          .from('students')
+          .delete()
+          .eq('id', sid)
+          .then(({ error }) => {
+            if (error) console.error('Error deleting student from Supabase:', error);
+          });
+      }
+      
       STATE.data.students = STATE.data.students.filter(s => s.id !== sid);
       STATE.data.activities = STATE.data.activities.filter(a => !a.studentIds.includes(sid));
       STATE.data.sessionLogs = STATE.data.sessionLogs.filter(l => l.studentId !== sid);
