@@ -5024,106 +5024,183 @@ const SPEECH_TEST_SOUNDS = [
   { id: 'pres-tense', label: 'استخدام الزمن المضارع' },
 ];
 
-/* Pre-assessment — sectioned model based on وزارة التعليم template
-   كل بند له id فريد + skillCategory للربط بمحرك توليد الأهداف */
+/* Pre-assessment — comprehensive Ministry of Education template
+   Based on official وزارة التعليم forms with 10 sections */
 const PRE_ASSESSMENT_SECTIONS = [
   {
     id: 'history',
+    num: 1,
     title: 'تاريخ الحالة',
     questions: [
-      { id: 'observed_age', label: 'متى لوحظت المشكلة؟', type: 'text', placeholder: 'مثال: عند بلوغ السنتين' },
-      { id: 'kindergarten', label: 'التحقت برياض أطفال؟', type: 'yn' },
-      { id: 'prev_diagnosis', label: 'تم تشخيصها سابقاً في مركز/مستشفى؟', type: 'yn' },
-      { id: 'diagnosis_text', label: 'إن كان نعم، اذكري المركز والتشخيص', type: 'text' },
-      { id: 'prev_therapy', label: 'تتلقى برامج علاجية للتخاطب حالياً؟', type: 'yn' },
-      { id: 'communication_mode', label: 'كيف تتواصل في المنزل؟', type: 'choice', options: [
-        { v: 'verbal', l: 'لفظياً' },
-        { v: 'gestures', l: 'إيماءات/إشارات' },
-        { v: 'both', l: 'مزيج' },
+      { id: 'issue_observed', label: 'متى تمت ملاحظة المشكلة مع الحالة؟', type: 'text', placeholder: 'توضيح' },
+      { id: 'kindergarten_check', label: 'هل التحقت الحالة ببرامج رياض أطفال؟', type: 'yn' },
+      { id: 'prev_diagnosis', label: 'هل تم تشخيص الحالة من قبل في مركز أو مستشفى؟', type: 'yn' },
+      { id: 'diagnosis_center', label: 'المركز / المستشفى', type: 'text', placeholder: 'اسم المركز' },
+      { id: 'diagnosis_result', label: 'التشخيص', type: 'text', placeholder: 'نتيجة التشخيص' },
+      { id: 'therapy_programs', label: 'هل تتلقى الحالة أي برامج علاجية للتخاطب؟', type: 'yn' },
+      { id: 'communication_home_verbal', label: 'هل تتواصل الحالة في المنزل لفظياً؟', type: 'yn' },
+      { id: 'communication_home_nonverbal', label: 'غير لفظي (إيماءات / إشارات)', type: 'yn' },
+      { id: 'social_interaction', label: 'هل تتواصل الحالة اجتماعياً بشكل جيد؟', type: 'yn' },
+      { id: 'articulation_situation', label: 'هل تنطق الحالة وترددها بطريقة صحيحة حسب الموقف؟', type: 'yn' },
+      { id: 'situation_specify', label: 'في حال الإجابة بنعم الرجاء تحديد الموقف', type: 'text', placeholder: 'توضيح الموقف' },
+      { id: 'medical_activities', label: 'هل هناك أنشطة معينة مطلقة؟', type: 'yn' },
+      { id: 'activities_specify', label: 'في حال الإجابة بنعم الرجاء تحديد نوع النشاط', type: 'text', placeholder: 'النشاط' },
+      { id: 'organic_disease', label: 'هل الحالة تعاني من أمراض عضلية؟', type: 'yn' },
+      { id: 'nerve_disease', label: 'هل الحالة تعاني من أمراض عصبية؟', type: 'yn' },
+      { id: 'syndrome', label: 'هل الحالة تعاني من متلازمة؟', type: 'yn' },
+      { id: 'syndrome_type', label: 'في حال الإجابة بنعم الرجاء تحديد نوع المتلازمة', type: 'text', placeholder: 'نوع المتلازمة' },
+      { id: 'hearing_loss_surgery', label: 'إذا كانت الحالة تعاني من ضعف سمعي أو أجرت عملية زراعة قوقعة الرجاء إكمال البيانات', type: 'text', placeholder: 'تفاصيل' },
+      { id: 'hearing_test_recent', label: 'هل أجرت الحالة تخطيط للسمع حديث؟', type: 'yn' },
+      { id: 'hearing_diagnosis_detail', label: 'في حال الإجابة بنعم الرجاء توضيح التشخيص', type: 'text', placeholder: 'التشخيص' },
+      { id: 'hearing_aid_type', label: 'نوع الضعف السمعي', type: 'choice', options: [
+        { v: 'transmissive', l: 'توصيلي' },
+        { v: 'sensory', l: 'حسي-عصبي' },
+        { v: 'mixed', l: 'مختلط' },
       ]},
-      { id: 'social_ok', label: 'تتواصل اجتماعياً بشكل جيد؟', type: 'yn' },
-      { id: 'muscle_disease', label: 'تعاني من أمراض عضلية؟', type: 'yn' },
-      { id: 'neuro_disease', label: 'تعاني من أمراض عصبية؟', type: 'yn' },
-      { id: 'syndrome', label: 'تعاني من متلازمة؟', type: 'text', placeholder: 'النوع إن وُجد' },
-      { id: 'hearing_loss', label: 'يوجد ضعف سمعي؟', type: 'yn' },
+      { id: 'hearing_degree', label: 'درجة الضعف السمعي', type: 'choice', options: [
+        { v: 'simple', l: 'بسيط' },
+        { v: 'medium', l: 'متوسط' },
+        { v: 'medium_severe', l: 'من متوسط إلى شديد' },
+        { v: 'severe', l: 'شديد' },
+      ]},
+      { id: 'hearing_aid_device', label: 'نوع المعين السمعي', type: 'choice', options: [
+        { v: 'hearing_aids', l: 'سماعات طبية' },
+        { v: 'electronic_cochlea', l: 'قوقعة إلكترونية' },
+      ]},
+    ],
+  },
+  {
+    id: 'medical',
+    num: 2,
+    title: 'التاريخ الطبي',
+    questions: [
+      { id: 'hospital', label: 'المستشفى', type: 'text', placeholder: 'اسم المستشفى' },
+      { id: 'right_ear', label: 'الأذن اليمنى', type: 'text', placeholder: 'تفاصيل' },
+      { id: 'left_ear', label: 'الأذن اليسرى', type: 'text', placeholder: 'تفاصيل' },
+      { id: 'surgery_date', label: 'تاريخ العملية', type: 'text', placeholder: 'التاريخ' },
+      { id: 'device_activation_date', label: 'تاريخ تفعيل الجهاز', type: 'text', placeholder: 'التاريخ' },
+      { id: 'rehab_start_date', label: 'تاريخ بداية التأهيل', type: 'text', placeholder: 'التاريخ' },
+      { id: 'session_count', label: 'عدد الجلسات', type: 'text', placeholder: 'العدد' },
+      { id: 'program_type', label: 'نوع البرامج المتاحة للتأهيل', type: 'text', placeholder: 'نوع البرامج' },
+      { id: 'device_model', label: 'نوع الجهاز', type: 'text', placeholder: 'الموديل' },
+      { id: 'device_company', label: 'الشركة', type: 'text', placeholder: 'الشركة المصنعة' },
+    ],
+  },
+  {
+    id: 'device_details',
+    num: 3,
+    title: 'تفاصيل الجهاز',
+    note: 'معلومات تفصيلية عن الأجهزة والجلسات',
+    questions: [
+      { id: 'detailed_hospital', label: 'المستشفى', type: 'text', placeholder: 'اسم المستشفى' },
+      { id: 'detailed_surgery_date', label: 'تاريخ العملية', type: 'text', placeholder: 'التاريخ' },
+      { id: 'detailed_device_activation', label: 'تاريخ تفعيل الجهاز', type: 'text', placeholder: 'التاريخ' },
+      { id: 'detailed_rehab_start', label: 'تاريخ بداية التأهيل', type: 'text', placeholder: 'التاريخ' },
+      { id: 'detailed_sessions', label: 'عدد الجلسات', type: 'text', placeholder: 'العدد' },
+      { id: 'detailed_program_type', label: 'نوع البرامج المتاحة للتأهيل', type: 'text', placeholder: 'نوع البرامج' },
+      { id: 'detailed_device_model', label: 'نوع الجهاز', type: 'text', placeholder: 'الموديل' },
+      { id: 'detailed_company', label: 'الشركة', type: 'text', placeholder: 'الشركة' },
     ],
   },
   {
     id: 'oral_mech',
+    num: 4,
     title: 'ميكانيكية أعضاء الكلام',
     cols: ['سليم','غير سليم'],
     questions: [
-      { id: 'org_tongue',  label: 'اللسان (تكوين)', type: 'pair' },
-      { id: 'org_lips',    label: 'الشفتان (تكوين)', type: 'pair' },
-      { id: 'org_jaws',    label: 'الفكان', type: 'pair' },
+      { id: 'org_tongue',  label: 'اللسان', type: 'pair' },
+      { id: 'org_lips',    label: 'الشفاة', type: 'pair' },
+      { id: 'org_jaws',    label: 'الفكين', type: 'pair' },
       { id: 'org_palate_h',label: 'سقف الحلق الصلب', type: 'pair' },
       { id: 'org_palate_s',label: 'سقف الحلق الرخو', type: 'pair' },
       { id: 'fn_tongue_up',   label: 'تحريك اللسان لأعلى', type: 'pair' },
       { id: 'fn_tongue_down', label: 'تحريك اللسان لأسفل', type: 'pair' },
       { id: 'fn_tongue_fwd',  label: 'تحريك اللسان للأمام', type: 'pair' },
       { id: 'fn_tongue_back', label: 'تحريك اللسان للخلف', type: 'pair' },
-      { id: 'fn_lips_close',  label: 'إغلاق الشفتين', type: 'pair' },
-      { id: 'fn_lips_open',   label: 'فتح الشفتين', type: 'pair' },
+      { id: 'fn_tongue_right', label: 'تحريك اللسان لليمين', type: 'pair' },
+      { id: 'fn_tongue_left', label: 'تحريك اللسان لليسار', type: 'pair' },
+      { id: 'fn_lips_close',  label: 'إغلاق الشفاة', type: 'pair' },
+      { id: 'fn_lips_open',   label: 'فتح الشفاة', type: 'pair' },
       { id: 'vital_swallow',  label: 'البلع', type: 'pair' },
       { id: 'vital_chew',     label: 'المضغ', type: 'pair' },
       { id: 'vital_blow',     label: 'النفخ', type: 'pair' },
       { id: 'vital_inhale',   label: 'الشهيق', type: 'pair' },
       { id: 'vital_exhale',   label: 'الزفير', type: 'pair' },
+      { id: 'notes_oral', label: 'ملاحظات', type: 'text', placeholder: 'ملاحظات إضافية' },
     ],
   },
   {
-    id: 'receptive',
-    title: 'اللغة الاستقبالية — تشير إلى',
-    cols: ['متقن','جزئي','غير متقن'],
+    id: 'language_informal',
+    num: 5,
+    title: 'تقييم (غير رسمي) للمهارات اللغوية',
+    cols: ['متقن','متقن جزئياً','غير متقن'],
+    note: 'الحالة تُظهر تنغيمة',
     questions: [
-      { id: 'r_animals',   label: 'الحيوانات والفواكه', cat: 'receptive', goal: 'animals' },
-      { id: 'r_verbs',     label: 'الأفعال', cat: 'receptive', goal: 'verbs' },
-      { id: 'r_days',      label: 'أيام الأسبوع', cat: 'receptive', goal: 'days' },
-      { id: 'r_preps',     label: 'حروف الجر', cat: 'receptive', goal: 'preps' },
-      { id: 'r_locations', label: 'ظروف المكان', cat: 'receptive', goal: 'locations' },
-      { id: 'r_sentence2', label: 'جملة من كلمتين (فعل + فاعل)', cat: 'receptive', goal: 'sentence2' },
-      { id: 'r_dialog',    label: 'إجابات الأسئلة الحوارية', cat: 'receptive', goal: 'dialog' },
+      { id: 'inf_tone', label: 'الحالة تُظهر تنغيمة', type: 'eval3' },
+      { id: 'inf_play_skills', label: 'مهارات اللعب', type: 'text', placeholder: 'ملاحظات' },
+      { id: 'inf_gestures', label: 'استخدام الإشارات أو الإيماءات', type: 'eval3' },
+      { id: 'inf_receptive_nonverbal', label: 'الاستجابة الغير لفظية للمحفز اللفظي', type: 'eval3' },
+      { id: 'inf_voluntary_sounds', label: 'إختيال إصدار كلمات أو أصوات عفوية', type: 'eval3' },
+      { id: 'inf_intentional_comm', label: 'التواصل المقصود', type: 'eval3' },
+      { id: 'inf_imitation_skills', label: 'مهارة تمثيل الأفعار', type: 'eval3' },
+      { id: 'inf_limited_lang_note', label: 'إذا كانت الحالة محدودة اللغة (في هذا المستوى الحالة تستخدم كلمة واحدة فقط) تقييم المهارات السابقة بالإضافة إلى', type: 'header' },
+      { id: 'inf_request_situations', label: 'الطلب من خلال استخدامات موقف أو فرصة للطلب', type: 'eval3' },
+      { id: 'inf_label_familiar', label: 'تسمية الأدوات المألوفة أو الإشارة', type: 'eval3' },
+      { id: 'inf_simple_syllables', label: 'استخدام المقاطع البسيطة', type: 'eval3' },
+      { id: 'inf_understand_words', label: 'فهم الكلمات والمقاطع البسيطة', type: 'eval3' },
+      { id: 'inf_limited_words_note', label: 'إذا كانت الحالة تستخدم كلمات محدودة، تقييم المهارات السابقة بالإضافة إلى', type: 'header' },
+      { id: 'inf_body_parts', label: 'تسمية أجزاء الجسم', type: 'eval3' },
+      { id: 'inf_familiar_nouns', label: 'تسمية المألوفة المألوفة', type: 'eval3' },
+      { id: 'inf_familiar_vegetables', label: 'تسمية الخضروات المألوفة', type: 'eval3' },
+      { id: 'inf_familiar_animals', label: 'تسمية الحيوانات المألوفة', type: 'eval3' },
+      { id: 'inf_primary_colors', label: 'تسمية الألوان الرئيسية', type: 'eval3' },
+      { id: 'inf_transport_means', label: 'تسمية وسائل المواصلات المألوفة', type: 'eval3' },
+      { id: 'inf_pronoun_mine', label: 'الدال الأنى', type: 'eval3' },
+      { id: 'inf_week_days', label: 'عد أيام الأسبوع', type: 'eval3' },
+      { id: 'inf_simple_commands_response', label: 'الاستجابة للأوامر البسيطة', type: 'eval3' },
+      { id: 'inf_simple_grammar', label: 'استخدام التراكيب النحوية البسيطة', type: 'eval3' },
+      { id: 'inf_maintain_topic', label: 'المحافظة على الموضوع أثناء الحديث', type: 'eval3' },
+      { id: 'inf_advanced_note', label: 'إذا كانت الحالة وصلت لمرحلة متقدمة من القدرات اللغوية تقييم المهارات السابقة بالإضافة إلى', type: 'header' },
+      { id: 'inf_multi_step_commands', label: 'إتباع الأوامر المكونة من عدة خطوات', type: 'eval3' },
+      { id: 'inf_descriptive_words', label: 'استخدام الكلمات الوصفية', type: 'eval3' },
+      { id: 'inf_classify_groups', label: 'تصنيف المجموعات (أكثر غير محدودة)', type: 'eval3' },
+      { id: 'inf_verb_forms', label: 'استخدام الأفعال بصيغ مختلفة', type: 'eval3' },
+      { id: 'inf_prepositions', label: 'استخدام حروف الجر', type: 'eval3' },
+      { id: 'inf_connectors', label: 'استخدام أدوات الربط', type: 'eval3' },
+      { id: 'inf_place_adverbs', label: 'استخدام ظرف المكان', type: 'eval3' },
     ],
   },
   {
-    id: 'expressive',
-    title: 'اللغة التعبيرية — تسمي',
-    cols: ['متقن','جزئي','غير متقن'],
+    id: 'fluency_disorder',
+    num: 6,
+    title: 'إذا كانت الحالة تعاني من اضطراب في الطلاقة تستكمل البيانات التالية',
+    note: 'نوع الإضطراب في الطلاقة',
     questions: [
-      { id: 'e_animals',   label: 'الحيوانات والفواكه', cat: 'expressive', goal: 'animals' },
-      { id: 'e_verbs',     label: 'الأفعال', cat: 'expressive', goal: 'verbs' },
-      { id: 'e_days',      label: 'أيام الأسبوع', cat: 'expressive', goal: 'days' },
-      { id: 'e_preps',     label: 'حروف الجر', cat: 'expressive', goal: 'preps' },
-      { id: 'e_locations', label: 'ظروف المكان', cat: 'expressive', goal: 'locations' },
-      { id: 'e_sentence2', label: 'تصف جملة من كلمتين', cat: 'expressive', goal: 'sentence2' },
-      { id: 'e_dialog',    label: 'تجيب على الأسئلة الحوارية', cat: 'expressive', goal: 'dialog' },
-      { id: 'e_sequence',  label: 'تصف الأحداث بطريقة تسلسلية', cat: 'expressive', goal: 'sequence' },
-    ],
-  },
-  {
-    id: 'grammar',
-    title: 'المهارات النحوية',
-    cols: ['متقن','جزئي','غير متقن'],
-    questions: [
-      { id: 'g_dual',     label: 'تسمية المثنى والجمع', cat: 'grammar', goal: 'dual_plural' },
-      { id: 'g_demons',   label: 'تسمية أسماء الإشارة', cat: 'grammar', goal: 'demonstratives' },
-      { id: 'g_pronouns', label: 'استخدام الضمائر', cat: 'grammar', goal: 'pronouns' },
-      { id: 'g_negation', label: 'استخدام أدوات النفي', cat: 'grammar', goal: 'negation' },
-    ],
-  },
-  {
-    id: 'pragmatic',
-    title: 'مهارات تواصلية',
-    cols: ['متقن','جزئي','غير متقن'],
-    questions: [
-      { id: 'p_request',   label: 'الطلب بقول (أبي + الشيء)', cat: 'pragmatic', goal: 'request' },
-      { id: 'p_follow1',   label: 'إتباع أمر من خطوة واحدة', cat: 'pragmatic', goal: 'follow1' },
-      { id: 'p_follow2',   label: 'إتباع أمرين متتاليين', cat: 'pragmatic', goal: 'follow2' },
-      { id: 'p_attention', label: 'الانتباه والتركيز للتمارين', cat: 'pragmatic', goal: 'attention' },
+      { id: 'flu_type_repeat', label: 'تكرار', type: 'header' },
+      { id: 'flu_repeat_word_part', label: 'تكرار جزء من الكلمة', type: 'yn' },
+      { id: 'flu_repeat_full_word', label: 'تكرار كلمة كاملة', type: 'yn' },
+      { id: 'flu_repeat_syllable', label: 'تكرار مقطع', type: 'yn' },
+      { id: 'flu_type_prolong', label: 'إطالة', type: 'header' },
+      { id: 'flu_prolong_interrupted', label: 'إطالة صوت / مقطع / إعتراضي', type: 'yn' },
+      { id: 'flu_prolong_continuous', label: 'إطالة مسامة', type: 'yn' },
+      { id: 'flu_type_insert', label: 'إعتراض', type: 'header' },
+      { id: 'flu_insert_sound_syllable', label: 'إدخال صوت / مقطع / اعتراضي', type: 'yn' },
+      { id: 'flu_insert_word', label: 'إدخال كلمة / اعتراضية', type: 'yn' },
+      { id: 'flu_type_pause', label: 'توقف صامت', type: 'header' },
+      { id: 'flu_pause_within_sentence', label: 'توقف صامت داخل الجملة', type: 'yn' },
+      { id: 'flu_pause_within_word', label: 'توقف صامت وسط الكلمة (نطق الكلمة)', type: 'yn' },
+      { id: 'flu_type_other', label: 'منطق غير مكتمل أو تغيير كلمة أو فكرة', type: 'header' },
+      { id: 'flu_incomplete_utterance', label: 'منطق غير مكتمل', type: 'yn' },
+      { id: 'flu_word_idea_change', label: 'تغيير كلمة أو فكرة', type: 'yn' },
+      { id: 'flu_physical_observations', label: 'ملاحظات وجسدية على الحالة متزامنة مع اضطراب الطلاقة', type: 'text', placeholder: 'ملاحظات' },
+      { id: 'flu_auditory_memory_header', label: 'الذاكرة السمعية', type: 'header' },
+      { id: 'flu_auditory_memory_words', label: 'الذاكرة السمعية للكلمات', type: 'text', placeholder: 'ملاحظات' },
+      { id: 'flu_auditory_memory_numbers', label: 'الذاكرة السمعية للأرقام', type: 'text', placeholder: 'ملاحظات' },
     ],
   },
   {
     id: 'sounds',
+    num: 7,
     title: 'مخارج الأصوات العربية (٢٨ صوت)',
     cols: ['سليم','محرّف','حذف'],
     note: 'الصوت غير السليم يولّد ٥ أهداف: مستقل + مع المدود + أول/وسط/آخر الكلمة',
@@ -5140,17 +5217,6 @@ const PRE_ASSESSMENT_SECTIONS = [
       { id: 'snd_l',  label: 'حرف (ل) — لسان، بلون، جمل', cat: 'sounds', goal: 'l' },
       { id: 'snd_k',  label: 'حرف (ك) — كأس، سكين، ديك', cat: 'sounds', goal: 'k' },
       { id: 'snd_j',  label: 'حرف (ج) — جرس، رجل، درج', cat: 'sounds', goal: 'j' },
-    ],
-  },
-  {
-    id: 'memory',
-    title: 'الذاكرة السمعية',
-    cols: ['دائماً','أحياناً','نادراً'],
-    questions: [
-      { id: 'm_words',    label: 'الذاكرة السمعية للكلمات', cat: 'memory', goal: 'words' },
-      { id: 'm_numbers',  label: 'الذاكرة السمعية للأرقام', cat: 'memory', goal: 'numbers' },
-      { id: 'm_sequence', label: 'التسلسل السمعي (٣–٤ أحداث)', cat: 'memory', goal: 'sequence' },
-      { id: 'm_command',  label: 'تنفيذ تعليمات بالترتيب', cat: 'memory', goal: 'command' },
     ],
   },
 ];
@@ -5232,6 +5298,14 @@ function renderPreAssessmentForm(st, data, viewOnly) {
   const sectionKey = params.get('sec') || 'history';
 
   const renderQuestion = (q, sec) => {
+    // Header type for subsection titles within a section
+    if (q.type === 'header') {
+      return `
+        <div style="margin-top:20px;margin-bottom:12px;padding:12px;background:var(--blue-50);border-right:4px solid var(--blue);border-radius:8px">
+          <div class="text-sm text-bold" style="color:var(--blue)">${esc(q.label)}</div>
+        </div>
+      `;
+    }
     if (q.type === 'text') {
       return `
         <div class="q-row" style="flex-direction:column;align-items:stretch;gap:6px">
@@ -5286,6 +5360,22 @@ function renderPreAssessmentForm(st, data, viewOnly) {
         </div>
       `;
     }
+    // eval3 (متقن / متقن جزئياً / غير متقن)
+    if (q.type === 'eval3') {
+      return `
+        <div class="q-row">
+          <div class="text-sm" style="flex:1">${esc(q.label)}</div>
+          <div class="row">
+            ${[{v:'mastered',l:'متقن',c:'mastered'},{v:'partial',l:'متقن جزئياً',c:'partial'},{v:'not',l:'غير متقن',c:'not-mastered'}].map(o => `
+              <label class="chip eval-chip ${o.c} ${answers[q.id] === o.v ? 'active' : ''}">
+                <input type="radio" name="q_${q.id}" value="${o.v}" ${answers[q.id] === o.v ? 'checked' : ''} hidden ${viewOnly?'disabled':''}>
+                ${esc(o.l)}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
     // 3-state evaluation (default for receptive/expressive/grammar/pragmatic/memory/sounds)
     const opts = sec.id === 'sounds' ? [
       {v:'correct', l:'سليم',  c:'mastered'},
@@ -5318,18 +5408,18 @@ function renderPreAssessmentForm(st, data, viewOnly) {
   const sec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === sectionKey) || PRE_ASSESSMENT_SECTIONS[0];
 
   return `
-    <div class="assessment-tabs">
-      ${PRE_ASSESSMENT_SECTIONS.map((s, i) => `
-        <button type="button" class="assess-tab ${s.id === sec.id ? 'active' : ''}" onclick="(function(){const u=new URL(location.href);const h=location.hash.split('?');const p=new URLSearchParams(h[1]||'');p.set('sec','${s.id}');location.hash=h[0]+'?'+p.toString();})()">
-          <span class="num">${arNum(i+1)}</span>
-          <span>${esc(s.title.split('—')[0].trim())}</span>
+    <div class="assessment-tabs" style="display:flex;flex-wrap:wrap;gap:10px;padding:20px;background:var(--surface-lavender);border-radius:12px;margin-bottom:24px">
+      ${PRE_ASSESSMENT_SECTIONS.map((s) => `
+        <button type="button" class="assess-tab ${s.id === sec.id ? 'active' : ''}" data-section="${s.id}" style="flex-shrink:0">
+          <span class="num">${arNum(s.num || 0)}</span>
+          <span>${esc(s.title.replace(/—.*/,'').trim())}</span>
         </button>
       `).join('')}
     </div>
 
     <form data-form="save-form" data-sid="${st.id}" data-fkey="preAssessment" data-section="${sec.id}">
       <div class="assess-section">
-        <h3 style="font-size:16px;margin-bottom:12px">${esc(sec.title)}</h3>
+        <h3 style="font-size:18px;margin-bottom:16px;font-weight:700">${esc(sec.title)}</h3>
         ${sec.note ? `<p class="text-xs text-muted mb-md">${esc(sec.note)}</p>` : ''}
         <div class="stack gap-sm">
           ${sec.questions.map(q => renderQuestion(q, sec)).join('')}
@@ -6254,6 +6344,47 @@ window.finishUpload = function(aid) {
 
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-action="close-modal"]')) closeModal();
+  
+  // Handle assessment tab clicks - update modal content without closing
+  const assessTab = e.target.closest('.assess-tab[data-section]');
+  if (assessTab) {
+    e.preventDefault();
+    e.stopPropagation();
+    const sectionId = assessTab.getAttribute('data-section');
+    
+    // Update URL params
+    const currentHash = location.hash.split('?')[0];
+    const params = new URLSearchParams(location.hash.split('?')[1] || '');
+    params.set('sec', sectionId);
+    
+    // Update hash WITHOUT triggering hashchange event
+    history.replaceState(null, '', currentHash + '?' + params.toString());
+    
+    // Find the form and re-render just the modal body
+    const form = document.querySelector('[data-form="save-form"][data-fkey="preAssessment"]');
+    if (form) {
+      const sid = form.getAttribute('data-sid');
+      const fkey = form.getAttribute('data-fkey');
+      const st = studentBy(sid);
+      if (st && fkey) {
+        const data = (st.forms || {})[fkey] || {};
+        const ft = FORM_TYPES.find(f => f.key === fkey);
+        const body = renderPreAssessmentForm(st, data, false);
+        
+        // Update just the modal body content
+        const modalContent = document.querySelector('.modal');
+        if (modalContent) {
+          modalContent.innerHTML = `
+            <div class="modal-head">
+              <h2>${ft.icon} ${esc(ft.name)} — ${esc(st.name)}</h2>
+              <button class="x" data-action="close-modal">${I.close}</button>
+            </div>
+            ${body}
+          `;
+        }
+      }
+    }
+  }
 });
 
 /* --------------- INIT --------------- */
