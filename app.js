@@ -3828,20 +3828,62 @@ document.addEventListener('click', async (e) => {
       if (!st) return;
       if (!confirm(`حذف الطالبة "${st.name}" نهائياً مع كل بياناتها؟ لن يمكن استرجاعها.`)) return;
       
-      // Delete from Supabase first
+      // Delete EVERYTHING from Supabase
       if (window.supabaseClient) {
-        const { error } = await window.supabaseClient
-          .from('students')
-          .delete()
-          .eq('id', sid);
-        
-        if (error) {
-          console.error('Error deleting student from Supabase:', error);
+        try {
+          // Delete student's plan
+          await window.supabaseClient
+            .from('plans')
+            .delete()
+            .eq('student_id', sid);
+          
+          // Delete student's sessions
+          await window.supabaseClient
+            .from('sessions')
+            .delete()
+            .eq('student_id', sid);
+          
+          // Delete student's forms/assessments (stored in student record)
+          // Delete student's account and parent account
+          const { data: studentData } = await window.supabaseClient
+            .from('students')
+            .select('user_id, parent_user_id')
+            .eq('id', sid)
+            .single();
+          
+          // Delete the student record
+          const { error: studentError } = await window.supabaseClient
+            .from('students')
+            .delete()
+            .eq('id', sid);
+          
+          if (studentError) throw studentError;
+          
+          // Delete student's user account if exists
+          if (studentData?.user_id) {
+            await window.supabaseClient
+              .from('users')
+              .delete()
+              .eq('id', studentData.user_id);
+          }
+          
+          // Delete parent's user account if exists
+          if (studentData?.parent_user_id) {
+            await window.supabaseClient
+              .from('users')
+              .delete()
+              .eq('id', studentData.parent_user_id);
+          }
+          
+          console.log('✅ Deleted all data for student:', sid);
+        } catch (error) {
+          console.error('Error deleting student data from Supabase:', error);
           toast('حدث خطأ في الحذف', 'error');
           return;
         }
       }
       
+      // Remove from local state
       STATE.data.students = STATE.data.students.filter(s => s.id !== sid);
       STATE.data.activities = STATE.data.activities.filter(a => !a.studentIds.includes(sid));
       STATE.data.sessionLogs = STATE.data.sessionLogs.filter(l => l.studentId !== sid);
@@ -3849,7 +3891,7 @@ document.addEventListener('click', async (e) => {
       STATE.data.plans = STATE.data.plans.filter(p => p.studentId !== sid);
       persistState();
       closeModal();
-      toast('تم حذف الطالبة نهائياً');
+      toast('تم حذف الطالبة وجميع بياناتها نهائياً');
       navigate('/teacher/students');
       return;
     }
@@ -6090,9 +6132,12 @@ function generatePlanFromAssessment(student) {
       }
     });
     
+    console.log('🔍 Language weak points:', langWeakPoints.length, langWeakPoints.map(w => w.id));
+    
     if (langWeakPoints.length) {
       // Generate MULTIPLE long-term goals for language skills
       const languageGoals = generateLanguageGoals(langWeakPoints);
+      console.log('📝 Generated language goals:', languageGoals.length, languageGoals);
       groups.push(...languageGoals);
     }
   }
@@ -6112,12 +6157,18 @@ function generatePlanFromAssessment(student) {
       }
     });
     
+    console.log('🔍 Auditory weak points:', artWeakPoints.length, artWeakPoints.map(w => w.id));
+    
     if (artWeakPoints.length) {
       // Generate MULTIPLE long-term goals for auditory skills
       const auditoryGoals = generateAuditoryGoals(artWeakPoints);
+      console.log('📝 Generated auditory goals:', auditoryGoals.length, auditoryGoals);
       groups.push(...auditoryGoals);
     }
   }
+
+  console.log('✅ FINAL GROUPS:', groups.length, 'total goals');
+  console.log('📋 Full groups structure:', JSON.stringify(groups, null, 2));
 
   // Return empty array if no goals needed (everything is mastered)
   return groups;
