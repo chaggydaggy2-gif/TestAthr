@@ -3692,35 +3692,19 @@ document.addEventListener('click', async (e) => {
             updated_at: now,
           };
           
-          // Check if plan exists in Supabase
-          const { data: existingPlan, error: queryError } = await window.supabaseClient
+          // First, DELETE the old plan completely to avoid merging old data
+          await window.supabaseClient
             .from('plans')
-            .select('id')
-            .eq('student_id', sid)
-            .maybeSingle();
+            .delete()
+            .eq('student_id', sid);
           
-          if (queryError && queryError.code !== 'PGRST116') {
-            throw queryError;
-          }
+          // Then INSERT the new plan fresh
+          const { error } = await window.supabaseClient
+            .from('plans')
+            .insert(planData);
           
-          if (existingPlan) {
-            // Update existing plan
-            const { error } = await window.supabaseClient
-              .from('plans')
-              .update(planData)
-              .eq('id', existingPlan.id);
-            
-            if (error) throw error;
-            console.log('✅ Plan regenerated at:', now);
-          } else {
-            // Insert new plan
-            const { error } = await window.supabaseClient
-              .from('plans')
-              .insert(planData);
-            
-            if (error) throw error;
-            console.log('✅ Plan created at:', now);
-          }
+          if (error) throw error;
+          console.log('✅ Plan completely regenerated at:', now);
           
           persistState();
           closeModal();
