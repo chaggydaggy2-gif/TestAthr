@@ -2399,12 +2399,23 @@ function viewParentDashboard() {
               
               if (goalStrings.length === 0) return `<div class="text-sm text-muted">لم تُحدَّد أهداف بعد.</div>`;
               
-              return goalStrings.slice(0, 4).map((g, i) => `
-                <div class="goal-row">
-                  <div class="goal-num">${arNum(i+1)}</div>
-                  <div style="flex:1" class="text-sm">${esc(typeof g === 'string' ? g : g.goal || g.text || 'هدف غير محدد')}</div>
-                </div>
-              `).join('');
+              // Show only first 5 goals
+              const displayGoals = goalStrings.slice(0, 5);
+              const hasMore = goalStrings.length > 5;
+              
+              return `
+                ${displayGoals.map((g, i) => `
+                  <div class="goal-row">
+                    <div class="goal-num">${arNum(i+1)}</div>
+                    <div style="flex:1" class="text-sm">${esc(typeof g === 'string' ? g : g.goal || g.text || 'هدف غير محدد')}</div>
+                  </div>
+                `).join('')}
+                ${hasMore ? `
+                  <a href="#/parent/progress" data-route="#/parent/progress" class="btn ghost block mt-sm" style="text-align:center">
+                    ${I.eye}<span>عرض جميع الأهداف (${arNum(goalStrings.length)})</span>
+                  </a>
+                ` : ''}
+              `;
             })()}
           </div>
         </div>
@@ -2635,7 +2646,7 @@ function viewParentProgress() {
           <div class="text-xs text-muted">أن تنطق الطالبة مخارج الأصوات بطريقة صحيحة.</div>
         </div>
         <div class="stack gap-sm">
-          ${allGoals.slice(0, 10).map(goal => {
+          ${allGoals.map(goal => {
             const stats = goalStats[goal];
             const isMastered = stats && stats.mastered > stats.notMastered;
             return `
@@ -3613,7 +3624,44 @@ document.addEventListener('click', async (e) => {
       }
       
       if (!groups || groups.length === 0) {
+        // All skills are mastered - clear the plan
         toast('جميع المهارات متقنة! لا حاجة لتوليد خطة 🎉', 'success');
+        
+        // Clear plan data
+        plan.groups = [];
+        plan.goals = [];
+        plan.progress = [];
+        plan.targetSkillIds = [];
+        plan.initialReport = '';
+        
+        // Delete from Supabase if it exists
+        (async () => {
+          try {
+            const { data: existingPlan } = await window.supabaseClient
+              .from('plans')
+              .select('id')
+              .eq('student_id', sid)
+              .maybeSingle();
+            
+            if (existingPlan) {
+              const { error } = await window.supabaseClient
+                .from('plans')
+                .delete()
+                .eq('id', existingPlan.id);
+              
+              if (error) throw error;
+              console.log('✅ Plan deleted (all skills mastered)');
+            }
+            
+            // Remove from local state
+            STATE.data.plans = STATE.data.plans.filter(p => p.studentId !== sid);
+            persistState();
+            handleRoute(); // Refresh view to show generate button
+          } catch (error) {
+            console.error('Error deleting plan:', error);
+          }
+        })();
+        
         return;
       }
       
@@ -3773,6 +3821,15 @@ document.addEventListener('click', async (e) => {
       persistState();
       toast('تمت استعادة الطالبة');
       handleRoute();
+      return;
+    }
+    if (a === 'edit-student') {
+      const sid = action.getAttribute('data-sid');
+      const st = studentBy(sid);
+      if (!st) return;
+      
+      // Open edit modal instead of navigating
+      openEditStudentModal(st);
       return;
     }
     if (a === 'delete-student' || a === 'delete-student-confirm') {
@@ -4204,6 +4261,69 @@ document.addEventListener('submit', (e) => {
     closeModal();
     toast('تمت إضافة الطالبة ✨ أرسلي رابط الدعوة لولي الأمر');
     navigate(`/teacher/student/${sid}?tab=messages`);
+    return;
+  }
+
+  // Edit Student (from principal modal)
+  const fEditStud = e.target.closest('[data-form="edit-student"]');
+  if (fEditStud) {
+    e.preventDefault();
+    const sid = fEditStud.getAttribute('data-sid');
+    const st = studentBy(sid);
+    if (!st) return;
+    
+    const fd = new FormData(fEditStud);
+    const name = (fd.get('name') || '').trim();
+    const stage = fd.get('stage');
+    const section = fd.get('section');
+    const age = parseInt(fd.get('age'), 10);
+    const parentName = (fd.get('parentName') || '').trim();
+    const parentPhone = (fd.get('parentPhone') || '').trim();
+    
+    if (!name) { toast('اسم الطالبة مطلوب', 'warn'); return; }
+    if (!stage || !section) { toast('اختاري المرحلة والفصل', 'warn'); return; }
+    
+    // Validate phone if provided
+    if (parentPhone) {
+      const phoneOK = /^(05\d{8}|9665\d{8}|\+9665\d{8})$/.test(parentPhone);
+      if (!phoneOK) { toast('رقم الجوال غير صحيح (مثال: 0501234567)', 'warn'); return; }
+    }
+    
+    // Update student data
+    st.name = name;
+    st.grade = `${stage} ${section}`;
+    if (age && age >= 3 && age <= 18) st.age = age;
+    if (parentName) st.parentName = parentName;
+    if (parentPhone) st.parent_phone = parentPhone.replace(/^\+?966/, '0').replace(/\D/g, '').replace(/^(?!05)/, '0');
+    
+    // Update initials
+    st.initials = name.split(/\s+/).map(w => w[0]).slice(0,2).join('');
+    
+    // Sync to Supabase if available
+    if (window.supabaseClient) {
+      (async () => {
+        const { error } = await window.supabaseClient
+          .from('students')
+          .update({
+            name: st.name,
+            grade: st.grade,
+            age: st.age,
+            parent_name: st.parentName,
+            parent_phone: st.parent_phone,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', sid);
+        
+        if (error) {
+          console.error('Error updating student in Supabase:', error);
+        }
+      })();
+    }
+    
+    persistState();
+    closeModal();
+    toast('تم تحديث بيانات الطالبة ✓');
+    handleRoute();
     return;
   }
 
@@ -4941,6 +5061,59 @@ function openAddStudentModal() {
   `);
 }
 
+function openEditStudentModal(student) {
+  const stages = ['حضانة','روضة','تمهيدي','أول','ثاني','ثالث','رابع','خامس','سادس'];
+  
+  // Parse current grade to extract stage and section
+  const gradeParts = (student.grade || '').split(' ');
+  const currentStage = gradeParts[0] || '';
+  const currentSection = gradeParts[1] || '';
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>تعديل بيانات ${esc(student.name)}</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="edit-student" data-sid="${student.id}">
+      <div class="field">
+        <label>اسم الطالبة الكامل</label>
+        <input name="name" required placeholder="مثال: ريم العتيبي" value="${esc(student.name)}">
+      </div>
+      <div class="row" style="gap:12px">
+        <div class="field" style="flex:2">
+          <label>المرحلة</label>
+          <select name="stage" required>
+            <option value="">اختاري...</option>
+            ${stages.map(s => `<option value="${s}" ${s === currentStage ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" style="flex:1">
+          <label>الفصل</label>
+          <select name="section" required>
+            <option value="">—</option>
+            <option ${currentSection === 'أ' ? 'selected' : ''}>أ</option>
+            <option ${currentSection === 'ب' ? 'selected' : ''}>ب</option>
+            <option ${currentSection === 'ج' ? 'selected' : ''}>ج</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>العمر (بالسنوات)</label>
+        <input name="age" type="number" min="3" max="18" placeholder="مثال: 7" value="${student.age || ''}">
+      </div>
+      <div class="field">
+        <label>اسم ولي الأمر</label>
+        <input name="parentName" placeholder="مثال: سارة العتيبي" value="${esc(student.parentName || '')}">
+      </div>
+      <div class="field">
+        <label>رقم ولي الأمر</label>
+        <input name="parentPhone" type="tel" required placeholder="05xxxxxxxx" value="${esc(student.parent_phone || student.parentPhone || '')}">
+      </div>
+      <button type="submit" class="btn lg block">${I.check}<span>حفظ التعديلات</span></button>
+    </form>
+  `);
+}
+
 function viewScheduleEditor() {
   const me = STATE.user;
   const myStudents = STATE.data.students.filter(s => s.teacherId === me.id && !s.archived);
@@ -5126,42 +5299,10 @@ const PRE_ASSESSMENT_SECTIONS = [
       ]},
     ],
   },
-  {
-    id: 'medical',
-    num: 2,
-    title: 'التاريخ الطبي',
-    questions: [
-      { id: 'hospital', label: 'المستشفى', type: 'text', placeholder: 'اسم المستشفى' },
-      { id: 'right_ear', label: 'الأذن اليمنى', type: 'text', placeholder: 'تفاصيل' },
-      { id: 'left_ear', label: 'الأذن اليسرى', type: 'text', placeholder: 'تفاصيل' },
-      { id: 'surgery_date', label: 'تاريخ العملية', type: 'text', placeholder: 'التاريخ' },
-      { id: 'device_activation_date', label: 'تاريخ تفعيل الجهاز', type: 'text', placeholder: 'التاريخ' },
-      { id: 'rehab_start_date', label: 'تاريخ بداية التأهيل', type: 'text', placeholder: 'التاريخ' },
-      { id: 'session_count', label: 'عدد الجلسات', type: 'text', placeholder: 'العدد' },
-      { id: 'program_type', label: 'نوع البرامج المتاحة للتأهيل', type: 'text', placeholder: 'نوع البرامج' },
-      { id: 'device_model', label: 'نوع الجهاز', type: 'text', placeholder: 'الموديل' },
-      { id: 'device_company', label: 'الشركة', type: 'text', placeholder: 'الشركة المصنعة' },
-    ],
-  },
-  {
-    id: 'device_details',
-    num: 3,
-    title: 'تفاصيل الجهاز',
-    note: 'معلومات تفصيلية عن الأجهزة والجلسات',
-    questions: [
-      { id: 'detailed_hospital', label: 'المستشفى', type: 'text', placeholder: 'اسم المستشفى' },
-      { id: 'detailed_surgery_date', label: 'تاريخ العملية', type: 'text', placeholder: 'التاريخ' },
-      { id: 'detailed_device_activation', label: 'تاريخ تفعيل الجهاز', type: 'text', placeholder: 'التاريخ' },
-      { id: 'detailed_rehab_start', label: 'تاريخ بداية التأهيل', type: 'text', placeholder: 'التاريخ' },
-      { id: 'detailed_sessions', label: 'عدد الجلسات', type: 'text', placeholder: 'العدد' },
-      { id: 'detailed_program_type', label: 'نوع البرامج المتاحة للتأهيل', type: 'text', placeholder: 'نوع البرامج' },
-      { id: 'detailed_device_model', label: 'نوع الجهاز', type: 'text', placeholder: 'الموديل' },
-      { id: 'detailed_company', label: 'الشركة', type: 'text', placeholder: 'الشركة' },
-    ],
-  },
+
   {
     id: 'oral_mech',
-    num: 4,
+    num: 2,
     title: 'ميكانيكية أعضاء الكلام',
     cols: ['سليم','غير سليم'],
     questions: [
@@ -5188,7 +5329,7 @@ const PRE_ASSESSMENT_SECTIONS = [
   },
   {
     id: 'language_informal',
-    num: 5,
+    num: 3,
     title: 'تقييم (غير رسمي) للمهارات اللغوية',
     cols: ['متقن','متقن جزئياً','غير متقن'],
     note: 'الحالة تُظهر تنغيمة',
@@ -5241,11 +5382,11 @@ const PRE_ASSESSMENT_SECTIONS = [
       { id: 'inf_express_emotions', label: 'التعبير عن المشاعر', type: 'eval3' },
       { id: 'inf_express_thoughts', label: 'التعبير عن الأفكار', type: 'eval3' },
       { id: 'inf_observations_header', label: 'ملاحظات الأخصائي على الحالة بعد التقييم', type: 'header' },
-      { id: 'inf_obs_word_finding', label: 'صعوبة في إيجاد الكلمات المناسبة أثناء الحديث', type: 'yn' },
+      { id: 'inf_obs_word_finding', label: 'مرباة في أبعاد التعليمات', type: 'yn' },
       { id: 'inf_obs_incorrect_alternatives', label: 'استخدام بدائل غير صحيحة للكلمات', type: 'yn' },
-      { id: 'inf_obs_pronouns_excessive', label: 'استخدام الضمائر بشكل كبير', type: 'yn' },
-      { id: 'inf_obs_sentence_length', label: 'مستوى طول الجمل طبيعي', type: 'yn' },
-      { id: 'inf_obs_grammar', label: 'تطبيق القواعد النحوية متقن', type: 'yn' },
+      { id: 'inf_obs_pronouns_excessive', label: 'استخدام التعبير بشكل غير', type: 'yn' },
+      { id: 'inf_obs_sentence_length', label: 'مستوى طول لنط طبيعي', type: 'yn' },
+      { id: 'inf_obs_grammar', label: 'تطبيق القواعد النحوية بشكل', type: 'yn' },
       { id: 'inf_obs_voice_level', label: 'مستوى على صوت طبيعي', type: 'yn' },
       { id: 'inf_obs_fluency', label: 'الطلاقة في المستوى الطبيعي', type: 'yn' },
       { id: 'inf_obs_intonation', label: 'التنغيم في المستوى الطبيعي', type: 'yn' },
@@ -5275,7 +5416,7 @@ const PRE_ASSESSMENT_SECTIONS = [
   },
   {
     id: 'articulation',
-    num: 6,
+    num: 4,
     title: 'تقييم المهارات السمعية',
     cols: ['دائماً','أحياناً','نادراً'],
     questions: [
@@ -5945,69 +6086,289 @@ function generatePlanFromAssessment(student) {
   // If no assessment data, return empty (no default plan)
   if (!hasAnswers) return [];
 
-  // Group: long-term goal → array of short-term goals
+  // Each group represents ONE long-term goal with its short-term goals
+  // Multiple long-term goals can be generated from the assessment
   const groups = [];
 
-  // ONLY generate from section 5 (language_informal) and section 6 (articulation)
-  // Section 5: تقييم (غير رسمي) للمهارات اللغوية
+  // ONLY generate from section 3 (language_informal) and section 4 (articulation)
+  // Section 3: تقييم (غير رسمي) للمهارات اللغوية
   const langSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'language_informal');
   if (langSec) {
-    const langShorts = [];
+    const langWeakPoints = [];
     langSec.questions.forEach(q => {
-      // Skip header and text type questions (only include eval3, yn, pair types)
+      // Skip header and text type questions
       if (q.type === 'header' || q.type === 'text') return;
       
       const ans = answers[q.id];
       // Only include if partial or not mastered
       if (ans === 'partial' || ans === 'not') {
-        // Use the question label as the goal
-        const goalText = q.label;
-        if (goalText && !langShorts.includes(goalText)) {
-          langShorts.push(goalText);
-        }
+        langWeakPoints.push({ id: q.id, label: q.label, status: ans });
       }
     });
     
-    if (langShorts.length) {
-      groups.push({ 
-        long: 'تحسين المهارات اللغوية الشاملة', 
-        shorts: langShorts, 
-        category: 'language_informal' 
-      });
+    if (langWeakPoints.length) {
+      // Generate MULTIPLE long-term goals for language skills
+      const languageGoals = generateLanguageGoals(langWeakPoints);
+      groups.push(...languageGoals);
     }
   }
 
-  // Section 6: تقييم المهارات السمعية
+  // Section 4: تقييم المهارات السمعية
   const artSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'articulation');
   if (artSec) {
-    const artShorts = [];
+    const artWeakPoints = [];
     artSec.questions.forEach(q => {
-      // Skip header and text type questions (only include eval3 type with دائماً/أحياناً/نادراً)
+      // Skip header and text type questions
       if (q.type === 'header' || q.type === 'text') return;
       
       const ans = answers[q.id];
-      // For articulation section with eval3, check for sometimes/rarely (أحياناً/نادراً)
-      if (ans === 'sometimes' || ans === 'rarely' || ans === 'partial' || ans === 'not') {
-        // Use the question label as the goal
-        const goalText = q.label;
-        if (goalText && !artShorts.includes(goalText)) {
-          artShorts.push(goalText);
-        }
+      // Only include if partial or not mastered (same as language section)
+      if (ans === 'partial' || ans === 'not') {
+        artWeakPoints.push({ id: q.id, label: q.label, status: ans });
       }
     });
     
-    if (artShorts.length) {
-      groups.push({ 
-        long: 'تطوير المهارات السمعية والإدراكية', 
-        shorts: artShorts, 
-        category: 'articulation' 
-      });
+    if (artWeakPoints.length) {
+      // Generate MULTIPLE long-term goals for auditory skills
+      const auditoryGoals = generateAuditoryGoals(artWeakPoints);
+      groups.push(...auditoryGoals);
     }
   }
 
   // Return empty array if no goals needed (everything is mastered)
-  // Do NOT fall back to default plan
   return groups;
+}
+
+// Generate MULTIPLE long-term goals for language skills
+// INTELLIGENTLY based on which items are marked as weak
+function generateLanguageGoals(weakPoints) {
+  const goals = [];
+  
+  // Goal 1: مهارة الانتباه والتركيز
+  // Maps to: inf_tone (تنغيمة), inf_intentional_comm (التواصل المقصود)
+  const hasAttention = weakPoints.some(wp => 
+    wp.id === 'inf_tone' || 
+    wp.id === 'inf_intentional_comm' ||
+    wp.id === 'inf_maintain_topic'
+  );
+  
+  if (hasAttention) {
+    goals.push({
+      long: 'أن تنمي الطالبة مهارة الانتباه والتركيز لديها بشكل صحيح',
+      shorts: [
+        'أن تؤدي الطالبة النشاط أو المهمة المطلوبة بتركيز بطريقة صحيحة بنسبة 80%'
+      ],
+      category: 'language_informal'
+    });
+  }
+  
+  // Goal 2: اللغة الاستقبالية
+  // Maps to: inf_receptive_nonverbal (الاستجابة الغير لفظية), inf_simple_commands_response (الاستجابة للأوامر),
+  //          inf_multi_step_commands (إتباع الأوامر المكونة من عدة خطوات), inf_understand_words (فهم الكلمات)
+  const hasReceptive = weakPoints.some(wp => 
+    wp.id === 'inf_receptive_nonverbal' ||
+    wp.id === 'inf_simple_commands_response' ||
+    wp.id === 'inf_multi_step_commands' ||
+    wp.id === 'inf_understand_words' ||
+    wp.id === 'inf_week_days' ||
+    wp.id === 'inf_opposites' ||
+    wp.id === 'inf_prepositions' ||
+    wp.id === 'inf_place_adverbs'
+  );
+  
+  if (hasReceptive) {
+    goals.push({
+      long: 'أن تنمي الطالبة اللغة الاستقبالية لديها بشكل صحيح',
+      shorts: [
+        'أن تشير الطالبة إلى بعض أيام الأسبوع بشكل صحيح بنسبة 80%',
+        'أن تشير الطالبة إلى المتضادات بشكل صحيح بنسبة 80%',
+        'أن تشير الطالبة إلى حروف الجر بشكل صحيح بنسبة 80%',
+        'أن تشير الطالبة إلى ظروف المكان بشكل صحيح بنسبة 80%',
+        'أن تشير الطالبة إلى جملة من 4 كلمات بشكل صحيح بنسبة 80%',
+        'أن تشير الطالبة إلى إجابات الأسئلة الحوارية (السلام عليكم، كيف حالك، ما اسمك، كم عمرك) بنسبة 80%'
+      ],
+      category: 'language_informal'
+    });
+  }
+  
+  // Goal 3: اللغة التعبيرية
+  // Maps to: inf_voluntary_sounds (إختيال إصدار كلمات), inf_label_familiar (تسمية الأدوات), 
+  //          inf_body_parts, inf_familiar_nouns, inf_familiar_vegetables, inf_familiar_animals, 
+  //          inf_primary_colors, inf_transport_means, inf_descriptive_words
+  const hasExpressive = weakPoints.some(wp => 
+    wp.id === 'inf_voluntary_sounds' ||
+    wp.id === 'inf_label_familiar' ||
+    wp.id === 'inf_body_parts' ||
+    wp.id === 'inf_familiar_nouns' ||
+    wp.id === 'inf_familiar_vegetables' ||
+    wp.id === 'inf_familiar_animals' ||
+    wp.id === 'inf_primary_colors' ||
+    wp.id === 'inf_transport_means' ||
+    wp.id === 'inf_week_days' ||
+    wp.id === 'inf_opposites' ||
+    wp.id === 'inf_descriptive_words' ||
+    wp.id === 'inf_express_physical' ||
+    wp.id === 'inf_express_emotions' ||
+    wp.id === 'inf_express_thoughts'
+  );
+  
+  if (hasExpressive) {
+    goals.push({
+      long: 'أن تنمي الطالبة اللغة التعبيرية لديها بشكل صحيح',
+      shorts: [
+        'أن تسمي الطالبة أيام الأسبوع بشكل صحيح بنسبة 80%',
+        'أن تسمي الطالبة المتضادات بشكل صحيح بنسبة 80%',
+        'أن تسمي الطالبة حروف الجر بشكل صحيح بنسبة 80%',
+        'أن تسمي الطالبة ظروف المكان بشكل صحيح بنسبة 80%',
+        'أن تصف الطالبة جملة من 4 كلمات بشكل صحيح بنسبة 80%',
+        'أن تجيب الطالبة على الأسئلة الحوارية (السلام عليكم، كيف حالك، ما اسمك، كم عمرك، ما اسم معلمتك) بنسبة 80%'
+      ],
+      category: 'language_informal'
+    });
+  }
+  
+  // Goal 4: المهارات النحوية
+  // Maps to: inf_simple_grammar (استخدام التراكيب النحوية), inf_verb_forms (استخدام الأفعال),
+  //          inf_prepositions, inf_connectors, inf_pronouns, inf_dual, inf_plural, 
+  //          inf_comparative_terms, inf_negation_types
+  const hasGrammar = weakPoints.some(wp => 
+    wp.id === 'inf_simple_grammar' ||
+    wp.id === 'inf_verb_forms' ||
+    wp.id === 'inf_prepositions' ||
+    wp.id === 'inf_connectors' ||
+    wp.id === 'inf_place_adverbs' ||
+    wp.id === 'inf_time_adverbs' ||
+    wp.id === 'inf_pronouns' ||
+    wp.id === 'inf_dual' ||
+    wp.id === 'inf_plural' ||
+    wp.id === 'inf_comparative_terms' ||
+    wp.id === 'inf_negation_types' ||
+    wp.id === 'inf_story_sequence'
+  );
+  
+  if (hasGrammar) {
+    goals.push({
+      long: 'أن تنمي الطالبة المهارات النحوية لديها بشكل صحيح',
+      shorts: [
+        'أن تسمي الطالبة المثنى والجمع عند الطلب بنسبة 80%',
+        'أن تسمي الطالبة أسماء الإشارة عند الطلب بنسبة 80%',
+        'أن تصف الطالبة أحداثًا متسلسلة عند الطلب بنسبة 80%'
+      ],
+      category: 'language_informal'
+    });
+  }
+  
+  // Goal 5: مهارة الطلب
+  // Maps to: inf_request_situations (الطلب من خلال استخدامات موقف), 
+  //          inf_key_questions (استخدام الأسئلة المفتاحية), 
+  //          inf_appropriate_answers (الإجابة المناسبة), inf_transfer_info (نقل المعلومة)
+  const hasRequest = weakPoints.some(wp => 
+    wp.id === 'inf_request_situations' ||
+    wp.id === 'inf_key_questions' ||
+    wp.id === 'inf_appropriate_answers' ||
+    wp.id === 'inf_transfer_info' ||
+    wp.id === 'inf_story_sequence' ||
+    wp.id === 'inf_identify_functions'
+  );
+  
+  if (hasRequest) {
+    goals.push({
+      long: 'أن تنمي الطالبة مهارة الطلب لديها بشكل صحيح',
+      shorts: [
+        'أن ترسد الطالبة قصة قصيرة عند الطلب بنسبة 80%',
+        'أن تطلب الطالبة الشيء بقول (أي + الشيء) بنسبة 80%'
+      ],
+      category: 'language_informal'
+    });
+  }
+  
+  return goals;
+}
+
+// Generate MULTIPLE long-term goals for auditory/listening skills
+// INTELLIGENTLY based on which auditory skills are weak
+// NOTE: Section 4 assesses AUDITORY skills (hearing, discrimination, comprehension), NOT sound articulation
+function generateAuditoryGoals(weakPoints) {
+  const goals = [];
+  
+  // Only generate if there are ACTUAL weak points
+  if (weakPoints.length === 0) {
+    return goals;
+  }
+  
+  // Check for auditory awareness issues
+  // Maps to: art_discriminate_presence (استخدام المحل السمعي), art_familiar_sounds (استخدام الحواس للكشف),
+  //          art_awareness_env_sounds* (إظهار الوعي للأصوات البيئية), art_response_name (التجاوب عند سماع الاسم)
+  const hasAuditoryAwareness = weakPoints.some(wp =>
+    wp.id === 'art_discriminate_presence' ||
+    wp.id === 'art_familiar_sounds' ||
+    wp.id === 'art_awareness_env_sounds' ||
+    wp.id === 'art_awareness_env_sounds_high' ||
+    wp.id === 'art_awareness_env_sounds_mid' ||
+    wp.id === 'art_awareness_env_sounds_low' ||
+    wp.id === 'art_awareness_voice_sounds' ||
+    wp.id === 'art_response_name' ||
+    wp.id === 'art_play_sounds'
+  );
+  
+  // Check for sound discrimination issues  
+  // Maps to: art_distinguish_* (تمييز الفروقات بين الأصوات), art_identify_voice (التعرف لمصدر الصوت),
+  //          art_identify_direction (تحديد اتجاه الصوت), art_six_sounds (الأصوات الستة)
+  const hasSoundDiscrimination = weakPoints.some(wp =>
+    wp.id === 'art_distinguish_different' ||
+    wp.id === 'art_distinguish_similar' ||
+    wp.id === 'art_distinguish_intonation' ||
+    wp.id === 'art_distinguish_person' ||
+    wp.id === 'art_distinguish_family' ||
+    wp.id === 'art_identify_voice' ||
+    wp.id === 'art_identify_direction' ||
+    wp.id === 'art_six_sounds' ||
+    wp.id === 'art_rhyme_detection' ||
+    wp.id === 'art_identify_speaker' ||
+    wp.id === 'art_similar_sounds' ||
+    wp.id === 'art_identify_elements' ||
+    wp.id === 'art_distinguish_phrases' ||
+    wp.id === 'art_syllable_patterns'
+  );
+  
+  // Check for auditory comprehension issues
+  // Maps to: art_listening_comprehension (الفهم على الاستماع), art_comprehension_segments (تفهم المقاطع والجمل),
+  //          art_natural_expressions (تعبير كلمات)
+  const hasAuditoryComprehension = weakPoints.some(wp =>
+    wp.id === 'art_listening_comprehension' ||
+    wp.id === 'art_comprehension_segments' ||
+    wp.id === 'art_natural_expressions'
+  );
+  
+  // Generate goal combining auditory skills based on detected issues
+  if (hasAuditoryAwareness || hasSoundDiscrimination || hasAuditoryComprehension) {
+    const shorts = [];
+    
+    // Add short-term goals based on specific weak areas
+    if (hasAuditoryAwareness) {
+      shorts.push('أن تستجيب الطالبة للأصوات البيئية المحيطة بها بشكل مناسب بنسبة 80%');
+      shorts.push('أن تستجيب الطالبة لاسمها عند المناداة بنسبة 80%');
+    }
+    
+    if (hasSoundDiscrimination) {
+      shorts.push('أن تميز الطالبة بين الأصوات المختلفة (بيئية وصوتية) بنسبة 80%');
+      shorts.push('أن تحدد الطالبة مصدر الصوت واتجاهه بشكل صحيح بنسبة 80%');
+      shorts.push('أن تميز الطالبة الأصوات الستة (أ، م، ي، س، ش، و) بنسبة 80%');
+    }
+    
+    if (hasAuditoryComprehension) {
+      shorts.push('أن تفهم الطالبة الكلمات والجمل المسموعة بشكل صحيح بنسبة 80%');
+      shorts.push('أن تستجيب الطالبة للتعليمات الشفهية البسيطة بنسبة 80%');
+    }
+    
+    goals.push({
+      long: 'أن تنمي الطالبة المهارات السمعية والإدراك السمعي لديها بشكل صحيح',
+      shorts: shorts,
+      category: 'articulation'
+    });
+  }
+  
+  return goals;
 }
 
 function generateInitialReport(student) {
@@ -6041,7 +6402,7 @@ function generateInitialReport(student) {
   const artSec = PRE_ASSESSMENT_SECTIONS.find(s => s.id === 'articulation');
   if (artSec) {
     const artIssues = artSec.questions.filter(q => 
-      q.type !== 'header' && q.type !== 'text' && (a[q.id] === 'sometimes' || a[q.id] === 'rarely')
+      q.type !== 'header' && q.type !== 'text' && (a[q.id] === 'partial' || a[q.id] === 'not')
     ).length;
     const artTotal = artSec.questions.filter(q => q.type !== 'header' && q.type !== 'text').length;
     
@@ -6315,22 +6676,9 @@ function openAddSessionModal(sid) {
   const plan = STATE.data.plans.find(p => p.studentId === sid);
   const allGoals = getAllPlanGoals(plan);
   
-  // If no plan, use default common goals
-  const defaultGoals = [
-    'استخدام الوعي الماغي بشكل صحيح',
-    'يرد القصص بترتيبها',
-    'تكوين جمل تامة من 5-4 كلمات',
-    'أن تنمي الطالبة مهارة الانتباه والتركيز لمدتها بشكل صحيح بنسبة ٪٨',
-    'أن تتبع الطالبة أمراً من حلوتين واحدة عندما يطلب منها ذلك بشكل صحيح بنسبة ٪٨',
-    'أن تنمي الطالبة أن بعض الحيوانات/الأشواك المطلوبة منها بشكل صحيح بنسبة ٪٨',
-    'أن تنطق الطالبة صوت (أ) أخر الكلمة بشكل صحيح بنسبة ٪٨',
-    'أن تنطق الطالبة صوت (أ) مع المدود (أ، يا، وا) بشكل صحيح بنسبة ٪٨',
-    'أن تجيب الطالبة على الأسئلة الحوارية (السلام عليكم، كيف حالك، ما اسملك، كم عمرك) بشكل صحيح بنسبة ٪٨',
-    'أن تسمي الطالبة الحيوانات/الأشواك المطلوبة بشكل صحيح بنسبة ٪٨',
-  ];
-  
-  const goalsToUse = allGoals.length ? allGoals : defaultGoals.map(g => ({ goal: g, category: 'general' }));
-  const suggested = allGoals.length ? suggestSessionGoals(st, allGoals, 3) : goalsToUse.slice(0, 3);
+  // Don't use default goals - if no plan, show empty
+  const goalsToUse = allGoals.length ? allGoals : [];
+  const suggested = allGoals.length ? suggestSessionGoals(st, allGoals, 3) : [];
   const suggestedKeys = new Set(suggested.map(s => typeof s === 'string' ? s : s.goal));
 
   // Group remaining goals by category
@@ -6799,6 +7147,7 @@ function viewPrincipalStudents() {
                       </div>
                       ${I.chevron}
                     </a>
+                    <button class="btn ghost sm" data-action="edit-student" data-sid="${s.id}" title="تعديل الطالبة">${I.edit}</button>
                     <button class="btn danger-soft sm" data-action="delete-student-confirm" data-sid="${s.id}" title="حذف الطالبة">${I.trash}</button>
                   </div>
                 `;
