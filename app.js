@@ -6141,143 +6141,144 @@ function generatePlanFromAssessment(student) {
 
 // Generate MULTIPLE long-term goals for language skills
 // INTELLIGENTLY based on which items are marked as weak
+// SHORT-TERM GOALS are DYNAMICALLY generated based on actual weak items
 function generateLanguageGoals(weakPoints) {
   const goals = [];
   
-  // Goal 1: مهارة الانتباه والتركيز
-  // Maps to: inf_tone (تنغيمة), inf_intentional_comm (التواصل المقصود)
-  const hasAttention = weakPoints.some(wp => 
-    wp.id === 'inf_tone' || 
-    wp.id === 'inf_intentional_comm' ||
-    wp.id === 'inf_maintain_topic'
+  // Create a mapping from assessment IDs to short-term goal text
+  const goalMapping = {
+    // Attention & Focus
+    'inf_tone': 'أن تُظهر الطالبة تنغيمة مناسبة عند التواصل بنسبة 80%',
+    'inf_intentional_comm': 'أن تستخدم الطالبة التواصل المقصود بشكل صحيح بنسبة 80%',
+    'inf_maintain_topic': 'أن تحافظ الطالبة على الموضوع أثناء الحديث بنسبة 80%',
+    
+    // Receptive Language
+    'inf_receptive_nonverbal': 'أن تستجيب الطالبة بشكل غير لفظي للمحفز اللفظي بنسبة 80%',
+    'inf_simple_commands_response': 'أن تستجيب الطالبة للأوامر البسيطة بشكل صحيح بنسبة 80%',
+    'inf_multi_step_commands': 'أن تتبع الطالبة الأوامر المكونة من عدة خطوات بنسبة 80%',
+    'inf_understand_words': 'أن تفهم الطالبة الكلمات والمقاطع البسيطة بنسبة 80%',
+    
+    // Expressive Language - Naming
+    'inf_voluntary_sounds': 'أن تصدر الطالبة كلمات أو أصوات عفوية بشكل مقصود بنسبة 80%',
+    'inf_label_familiar': 'أن تسمي الطالبة الأدوات المألوفة بشكل صحيح بنسبة 80%',
+    'inf_body_parts': 'أن تسمي الطالبة أجزاء الجسم بشكل صحيح بنسبة 80%',
+    'inf_familiar_nouns': 'أن تسمي الطالبة الأسماء المألوفة بشكل صحيح بنسبة 80%',
+    'inf_familiar_vegetables': 'أن تسمي الطالبة الخضروات المألوفة بشكل صحيح بنسبة 80%',
+    'inf_familiar_animals': 'أن تسمي الطالبة الحيوانات المألوفة بشكل صحيح بنسبة 80%',
+    'inf_primary_colors': 'أن تسمي الطالبة الألوان الرئيسية بشكل صحيح بنسبة 80%',
+    'inf_transport_means': 'أن تسمي الطالبة وسائل المواصلات المألوفة بشكل صحيح بنسبة 80%',
+    'inf_week_days': 'أن تسمي الطالبة أيام الأسبوع بشكل صحيح بنسبة 80%',
+    'inf_descriptive_words': 'أن تستخدم الطالبة الكلمات الوصفية بشكل صحيح بنسبة 80%',
+    'inf_opposites': 'أن تسمي الطالبة المتضادات بشكل صحيح بنسبة 80%',
+    
+    // Expressive Language - Communication
+    'inf_express_physical': 'أن تعبر الطالبة عن الاحتياجات الجسمية بنسبة 80%',
+    'inf_express_emotions': 'أن تعبر الطالبة عن المشاعر بنسبة 80%',
+    'inf_express_thoughts': 'أن تعبر الطالبة عن الأفكار بنسبة 80%',
+    
+    // Grammar & Syntax
+    'inf_simple_grammar': 'أن تستخدم الطالبة التراكيب النحوية البسيطة بنسبة 80%',
+    'inf_verb_forms': 'أن تستخدم الطالبة الأفعال بصيغ مختلفة بنسبة 80%',
+    'inf_prepositions': 'أن تستخدم الطالبة حروف الجر بشكل صحيح بنسبة 80%',
+    'inf_connectors': 'أن تستخدم الطالبة أدوات الربط بشكل صحيح بنسبة 80%',
+    'inf_place_adverbs': 'أن تستخدم الطالبة ظرف المكان بشكل صحيح بنسبة 80%',
+    'inf_time_adverbs': 'أن تستخدم الطالبة ظرف الزمان بشكل صحيح بنسبة 80%',
+    'inf_pronouns': 'أن تستخدم الطالبة الضمائر بشكل صحيح بنسبة 80%',
+    'inf_pronoun_mine': 'أن تستخدم الطالبة الضمير "لي" بشكل صحيح بنسبة 80%',
+    'inf_dual': 'أن تستخدم الطالبة المثنى بشكل صحيح بنسبة 80%',
+    'inf_plural': 'أن تستخدم الطالبة الجمع بشكل صحيح بنسبة 80%',
+    'inf_comparative_terms': 'أن تستخدم الطالبة مصطلحات المقارنة بنسبة 80%',
+    'inf_negation_types': 'أن تستخدم الطالبة أنواع النفي بنسبة 80%',
+    'inf_story_sequence': 'أن تسرد الطالبة قصة قصيرة مع تسلسل الأحداث بنسبة 80%',
+    
+    // Pragmatic & Request Skills
+    'inf_request_situations': 'أن تطلب الطالبة من خلال المواقف المناسبة بنسبة 80%',
+    'inf_key_questions': 'أن تستخدم الطالبة الأسئلة المفتاحية للموقف بنسبة 80%',
+    'inf_appropriate_answers': 'أن تجيب الطالبة إجابة مناسبة عن أسئلة مختلفة بنسبة 80%',
+    'inf_transfer_info': 'أن تنقل الطالبة المعلومة أو تصف حدث بنسبة 80%',
+    'inf_identify_functions': 'أن تحدد الطالبة وظائف الأشياء بنسبة 80%',
+    
+    // Basic Skills
+    'inf_gestures': 'أن تستخدم الطالبة الإشارات والإيماءات بشكل مناسب بنسبة 80%',
+    'inf_imitation_skills': 'أن تقلد الطالبة الأفعال بنسبة 80%',
+    'inf_simple_syllables': 'أن تستخدم الطالبة المقاطع البسيطة بنسبة 80%',
+    'inf_classify_groups': 'أن تصنف الطالبة المجموعات بشكل صحيح بنسبة 80%',
+  };
+  
+  // Group weak points by goal category
+  const attentionItems = weakPoints.filter(wp => 
+    wp.id === 'inf_tone' || wp.id === 'inf_intentional_comm' || wp.id === 'inf_maintain_topic'
   );
   
-  if (hasAttention) {
+  const receptiveItems = weakPoints.filter(wp => 
+    wp.id === 'inf_receptive_nonverbal' || wp.id === 'inf_simple_commands_response' ||
+    wp.id === 'inf_multi_step_commands' || wp.id === 'inf_understand_words'
+  );
+  
+  const expressiveItems = weakPoints.filter(wp => 
+    wp.id === 'inf_voluntary_sounds' || wp.id === 'inf_label_familiar' ||
+    wp.id === 'inf_body_parts' || wp.id === 'inf_familiar_nouns' ||
+    wp.id === 'inf_familiar_vegetables' || wp.id === 'inf_familiar_animals' ||
+    wp.id === 'inf_primary_colors' || wp.id === 'inf_transport_means' ||
+    wp.id === 'inf_week_days' || wp.id === 'inf_opposites' ||
+    wp.id === 'inf_descriptive_words' || wp.id === 'inf_express_physical' ||
+    wp.id === 'inf_express_emotions' || wp.id === 'inf_express_thoughts' ||
+    wp.id === 'inf_gestures' || wp.id === 'inf_simple_syllables'
+  );
+  
+  const grammarItems = weakPoints.filter(wp => 
+    wp.id === 'inf_simple_grammar' || wp.id === 'inf_verb_forms' ||
+    wp.id === 'inf_prepositions' || wp.id === 'inf_connectors' ||
+    wp.id === 'inf_place_adverbs' || wp.id === 'inf_time_adverbs' ||
+    wp.id === 'inf_pronouns' || wp.id === 'inf_pronoun_mine' ||
+    wp.id === 'inf_dual' || wp.id === 'inf_plural' ||
+    wp.id === 'inf_comparative_terms' || wp.id === 'inf_negation_types' ||
+    wp.id === 'inf_story_sequence' || wp.id === 'inf_classify_groups'
+  );
+  
+  const requestItems = weakPoints.filter(wp => 
+    wp.id === 'inf_request_situations' || wp.id === 'inf_key_questions' ||
+    wp.id === 'inf_appropriate_answers' || wp.id === 'inf_transfer_info' ||
+    wp.id === 'inf_identify_functions' || wp.id === 'inf_imitation_skills'
+  );
+  
+  // Generate goals ONLY with relevant short-term goals
+  if (attentionItems.length > 0) {
     goals.push({
       long: 'أن تنمي الطالبة مهارة الانتباه والتركيز لديها بشكل صحيح',
-      shorts: [
-        'أن تؤدي الطالبة النشاط أو المهمة المطلوبة بتركيز بطريقة صحيحة بنسبة 80%'
-      ],
+      shorts: attentionItems.map(item => goalMapping[item.id] || `تحسين ${item.label} بنسبة 80%`),
       category: 'language_informal'
     });
   }
   
-  // Goal 2: اللغة الاستقبالية
-  // Maps to: inf_receptive_nonverbal (الاستجابة الغير لفظية), inf_simple_commands_response (الاستجابة للأوامر),
-  //          inf_multi_step_commands (إتباع الأوامر المكونة من عدة خطوات), inf_understand_words (فهم الكلمات)
-  const hasReceptive = weakPoints.some(wp => 
-    wp.id === 'inf_receptive_nonverbal' ||
-    wp.id === 'inf_simple_commands_response' ||
-    wp.id === 'inf_multi_step_commands' ||
-    wp.id === 'inf_understand_words' ||
-    wp.id === 'inf_week_days' ||
-    wp.id === 'inf_opposites' ||
-    wp.id === 'inf_prepositions' ||
-    wp.id === 'inf_place_adverbs'
-  );
-  
-  if (hasReceptive) {
+  if (receptiveItems.length > 0) {
     goals.push({
       long: 'أن تنمي الطالبة اللغة الاستقبالية لديها بشكل صحيح',
-      shorts: [
-        'أن تشير الطالبة إلى بعض أيام الأسبوع بشكل صحيح بنسبة 80%',
-        'أن تشير الطالبة إلى المتضادات بشكل صحيح بنسبة 80%',
-        'أن تشير الطالبة إلى حروف الجر بشكل صحيح بنسبة 80%',
-        'أن تشير الطالبة إلى ظروف المكان بشكل صحيح بنسبة 80%',
-        'أن تشير الطالبة إلى جملة من 4 كلمات بشكل صحيح بنسبة 80%',
-        'أن تشير الطالبة إلى إجابات الأسئلة الحوارية (السلام عليكم، كيف حالك، ما اسمك، كم عمرك) بنسبة 80%'
-      ],
+      shorts: receptiveItems.map(item => goalMapping[item.id] || `تحسين ${item.label} بنسبة 80%`),
       category: 'language_informal'
     });
   }
   
-  // Goal 3: اللغة التعبيرية
-  // Maps to: inf_voluntary_sounds (إختيال إصدار كلمات), inf_label_familiar (تسمية الأدوات), 
-  //          inf_body_parts, inf_familiar_nouns, inf_familiar_vegetables, inf_familiar_animals, 
-  //          inf_primary_colors, inf_transport_means, inf_descriptive_words
-  const hasExpressive = weakPoints.some(wp => 
-    wp.id === 'inf_voluntary_sounds' ||
-    wp.id === 'inf_label_familiar' ||
-    wp.id === 'inf_body_parts' ||
-    wp.id === 'inf_familiar_nouns' ||
-    wp.id === 'inf_familiar_vegetables' ||
-    wp.id === 'inf_familiar_animals' ||
-    wp.id === 'inf_primary_colors' ||
-    wp.id === 'inf_transport_means' ||
-    wp.id === 'inf_week_days' ||
-    wp.id === 'inf_opposites' ||
-    wp.id === 'inf_descriptive_words' ||
-    wp.id === 'inf_express_physical' ||
-    wp.id === 'inf_express_emotions' ||
-    wp.id === 'inf_express_thoughts'
-  );
-  
-  if (hasExpressive) {
+  if (expressiveItems.length > 0) {
     goals.push({
       long: 'أن تنمي الطالبة اللغة التعبيرية لديها بشكل صحيح',
-      shorts: [
-        'أن تسمي الطالبة أيام الأسبوع بشكل صحيح بنسبة 80%',
-        'أن تسمي الطالبة المتضادات بشكل صحيح بنسبة 80%',
-        'أن تسمي الطالبة حروف الجر بشكل صحيح بنسبة 80%',
-        'أن تسمي الطالبة ظروف المكان بشكل صحيح بنسبة 80%',
-        'أن تصف الطالبة جملة من 4 كلمات بشكل صحيح بنسبة 80%',
-        'أن تجيب الطالبة على الأسئلة الحوارية (السلام عليكم، كيف حالك، ما اسمك، كم عمرك، ما اسم معلمتك) بنسبة 80%'
-      ],
+      shorts: expressiveItems.map(item => goalMapping[item.id] || `تحسين ${item.label} بنسبة 80%`),
       category: 'language_informal'
     });
   }
   
-  // Goal 4: المهارات النحوية
-  // Maps to: inf_simple_grammar (استخدام التراكيب النحوية), inf_verb_forms (استخدام الأفعال),
-  //          inf_prepositions, inf_connectors, inf_pronouns, inf_dual, inf_plural, 
-  //          inf_comparative_terms, inf_negation_types
-  const hasGrammar = weakPoints.some(wp => 
-    wp.id === 'inf_simple_grammar' ||
-    wp.id === 'inf_verb_forms' ||
-    wp.id === 'inf_prepositions' ||
-    wp.id === 'inf_connectors' ||
-    wp.id === 'inf_place_adverbs' ||
-    wp.id === 'inf_time_adverbs' ||
-    wp.id === 'inf_pronouns' ||
-    wp.id === 'inf_dual' ||
-    wp.id === 'inf_plural' ||
-    wp.id === 'inf_comparative_terms' ||
-    wp.id === 'inf_negation_types' ||
-    wp.id === 'inf_story_sequence'
-  );
-  
-  if (hasGrammar) {
+  if (grammarItems.length > 0) {
     goals.push({
       long: 'أن تنمي الطالبة المهارات النحوية لديها بشكل صحيح',
-      shorts: [
-        'أن تسمي الطالبة المثنى والجمع عند الطلب بنسبة 80%',
-        'أن تسمي الطالبة أسماء الإشارة عند الطلب بنسبة 80%',
-        'أن تصف الطالبة أحداثًا متسلسلة عند الطلب بنسبة 80%'
-      ],
+      shorts: grammarItems.map(item => goalMapping[item.id] || `تحسين ${item.label} بنسبة 80%`),
       category: 'language_informal'
     });
   }
   
-  // Goal 5: مهارة الطلب
-  // Maps to: inf_request_situations (الطلب من خلال استخدامات موقف), 
-  //          inf_key_questions (استخدام الأسئلة المفتاحية), 
-  //          inf_appropriate_answers (الإجابة المناسبة), inf_transfer_info (نقل المعلومة)
-  const hasRequest = weakPoints.some(wp => 
-    wp.id === 'inf_request_situations' ||
-    wp.id === 'inf_key_questions' ||
-    wp.id === 'inf_appropriate_answers' ||
-    wp.id === 'inf_transfer_info' ||
-    wp.id === 'inf_story_sequence' ||
-    wp.id === 'inf_identify_functions'
-  );
-  
-  if (hasRequest) {
+  if (requestItems.length > 0) {
     goals.push({
       long: 'أن تنمي الطالبة مهارة الطلب لديها بشكل صحيح',
-      shorts: [
-        'أن ترسد الطالبة قصة قصيرة عند الطلب بنسبة 80%',
-        'أن تطلب الطالبة الشيء بقول (أي + الشيء) بنسبة 80%'
-      ],
+      shorts: requestItems.map(item => goalMapping[item.id] || `تحسين ${item.label} بنسبة 80%`),
       category: 'language_informal'
     });
   }
@@ -6288,6 +6289,7 @@ function generateLanguageGoals(weakPoints) {
 // Generate MULTIPLE long-term goals for auditory/listening skills
 // INTELLIGENTLY based on which auditory skills are weak
 // NOTE: Section 4 assesses AUDITORY skills (hearing, discrimination, comprehension), NOT sound articulation
+// SHORT-TERM GOALS are DYNAMICALLY generated based on actual weak items
 function generateAuditoryGoals(weakPoints) {
   const goals = [];
   
@@ -6296,74 +6298,91 @@ function generateAuditoryGoals(weakPoints) {
     return goals;
   }
   
-  // Check for auditory awareness issues
-  // Maps to: art_discriminate_presence (استخدام المحل السمعي), art_familiar_sounds (استخدام الحواس للكشف),
-  //          art_awareness_env_sounds* (إظهار الوعي للأصوات البيئية), art_response_name (التجاوب عند سماع الاسم)
-  const hasAuditoryAwareness = weakPoints.some(wp =>
-    wp.id === 'art_discriminate_presence' ||
-    wp.id === 'art_familiar_sounds' ||
-    wp.id === 'art_awareness_env_sounds' ||
-    wp.id === 'art_awareness_env_sounds_high' ||
-    wp.id === 'art_awareness_env_sounds_mid' ||
-    wp.id === 'art_awareness_env_sounds_low' ||
-    wp.id === 'art_awareness_voice_sounds' ||
-    wp.id === 'art_response_name' ||
-    wp.id === 'art_play_sounds'
+  // Create a mapping from assessment IDs to short-term goal text
+  const auditoryGoalMapping = {
+    // Auditory Awareness
+    'art_discriminate_presence': 'أن تستخدم الطالبة المعين السمعي طوال ساعات الاستيقاظ بنسبة 80%',
+    'art_familiar_sounds': 'أن تستخدم الطالبة حواسها للكشف عن سماع صوت بنسبة 80%',
+    'art_awareness_env_sounds': 'أن تظهر الطالبة الوعي والانتباه في الاستجابة للأصوات بنسبة 80%',
+    'art_awareness_env_sounds_high': 'أن تستجيب الطالبة للأصوات البيئية العالية بنسبة 80%',
+    'art_awareness_env_sounds_mid': 'أن تستجيب الطالبة للأصوات البيئية المتوسطة بنسبة 80%',
+    'art_awareness_env_sounds_low': 'أن تستجيب الطالبة للأصوات البيئية المنخفضة بنسبة 80%',
+    'art_awareness_voice_sounds': 'أن تظهر الطالبة الوعي للأصوات أثناء التحدث بنسبة 80%',
+    'art_response_name': 'أن تستجيب الطالبة عند سماع اسمها بنسبة 80%',
+    'art_play_sounds': 'أن تنتبه الطالبة للأصوات أثناء اللعب بنسبة 80%',
+    'art_six_sounds': 'أن تميز الطالبة الأصوات الستة (أ، م، ي، س، ش، و) بنسبة 80%',
+    
+    // Sound Discrimination
+    'art_distinguish_different': 'أن تميز الطالبة بين الكلام والأصوات البيئية بنسبة 80%',
+    'art_distinguish_similar': 'أن تميز الطالبة بين الأصوات البيئية المختلفة بنسبة 80%',
+    'art_distinguish_intonation': 'أن تميز الطالبة بين الصوت الهادئ والمرتفع بنسبة 80%',
+    'art_distinguish_person': 'أن تلاحظ الطالبة الفرق بين شخص وآخر يتحدث بنسبة 80%',
+    'art_distinguish_family': 'أن تميز الطالبة بين أصوات أفراد العائلة بنسبة 80%',
+    'art_identify_voice': 'أن تتعرف الطالبة على مصدر الصوت بنسبة 80%',
+    'art_identify_direction': 'أن تحدد الطالبة اتجاه الصوت بشكل صحيح بنسبة 80%',
+    'art_rhyme_detection': 'أن تميز الطالبة صوت المتحدث عند وجود ضجيج بنسبة 80%',
+    'art_identify_speaker': 'أن تميز الطالبة المشاعر من نغمة الصوت بنسبة 80%',
+    'art_similar_sounds': 'أن تستجيب الطالبة لاسمها عند المناداة بنسبة 80%',
+    'art_identify_elements': 'أن تحدد الطالبة العناصر المرتبطة بالصوت بنسبة 80%',
+    'art_distinguish_phrases': 'أن تميز الطالبة بين الكلمات ذات المعاني المختلفة بنسبة 80%',
+    'art_syllable_patterns': 'أن تميز الطالبة أنماط المقاطع الصوتية بنسبة 80%',
+    
+    // Auditory Comprehension
+    'art_listening_comprehension': 'أن تفهم الطالبة الكلمات المسموعة وتشير إليها بنسبة 80%',
+    'art_comprehension_segments': 'أن تفهم الطالبة المقاطع والجمل المسموعة بنسبة 80%',
+    'art_natural_expressions': 'أن تفهم الطالبة الكلمات المستخدمة في بيئتها الطبيعية بنسبة 80%',
+  };
+  
+  // Group weak points into subcategories
+  const awarenessItems = weakPoints.filter(wp =>
+    wp.id === 'art_discriminate_presence' || wp.id === 'art_familiar_sounds' ||
+    wp.id === 'art_awareness_env_sounds' || wp.id === 'art_awareness_env_sounds_high' ||
+    wp.id === 'art_awareness_env_sounds_mid' || wp.id === 'art_awareness_env_sounds_low' ||
+    wp.id === 'art_awareness_voice_sounds' || wp.id === 'art_response_name' ||
+    wp.id === 'art_play_sounds' || wp.id === 'art_six_sounds'
   );
   
-  // Check for sound discrimination issues  
-  // Maps to: art_distinguish_* (تمييز الفروقات بين الأصوات), art_identify_voice (التعرف لمصدر الصوت),
-  //          art_identify_direction (تحديد اتجاه الصوت), art_six_sounds (الأصوات الستة)
-  const hasSoundDiscrimination = weakPoints.some(wp =>
-    wp.id === 'art_distinguish_different' ||
-    wp.id === 'art_distinguish_similar' ||
-    wp.id === 'art_distinguish_intonation' ||
-    wp.id === 'art_distinguish_person' ||
-    wp.id === 'art_distinguish_family' ||
-    wp.id === 'art_identify_voice' ||
-    wp.id === 'art_identify_direction' ||
-    wp.id === 'art_six_sounds' ||
-    wp.id === 'art_rhyme_detection' ||
-    wp.id === 'art_identify_speaker' ||
-    wp.id === 'art_similar_sounds' ||
-    wp.id === 'art_identify_elements' ||
-    wp.id === 'art_distinguish_phrases' ||
+  const discriminationItems = weakPoints.filter(wp =>
+    wp.id === 'art_distinguish_different' || wp.id === 'art_distinguish_similar' ||
+    wp.id === 'art_distinguish_intonation' || wp.id === 'art_distinguish_person' ||
+    wp.id === 'art_distinguish_family' || wp.id === 'art_identify_voice' ||
+    wp.id === 'art_identify_direction' || wp.id === 'art_rhyme_detection' ||
+    wp.id === 'art_identify_speaker' || wp.id === 'art_similar_sounds' ||
+    wp.id === 'art_identify_elements' || wp.id === 'art_distinguish_phrases' ||
     wp.id === 'art_syllable_patterns'
   );
   
-  // Check for auditory comprehension issues
-  // Maps to: art_listening_comprehension (الفهم على الاستماع), art_comprehension_segments (تفهم المقاطع والجمل),
-  //          art_natural_expressions (تعبير كلمات)
-  const hasAuditoryComprehension = weakPoints.some(wp =>
-    wp.id === 'art_listening_comprehension' ||
-    wp.id === 'art_comprehension_segments' ||
+  const comprehensionItems = weakPoints.filter(wp =>
+    wp.id === 'art_listening_comprehension' || wp.id === 'art_comprehension_segments' ||
     wp.id === 'art_natural_expressions'
   );
   
-  // Generate goal combining auditory skills based on detected issues
-  if (hasAuditoryAwareness || hasSoundDiscrimination || hasAuditoryComprehension) {
-    const shorts = [];
-    
-    // Add short-term goals based on specific weak areas
-    if (hasAuditoryAwareness) {
-      shorts.push('أن تستجيب الطالبة للأصوات البيئية المحيطة بها بشكل مناسب بنسبة 80%');
-      shorts.push('أن تستجيب الطالبة لاسمها عند المناداة بنسبة 80%');
-    }
-    
-    if (hasSoundDiscrimination) {
-      shorts.push('أن تميز الطالبة بين الأصوات المختلفة (بيئية وصوتية) بنسبة 80%');
-      shorts.push('أن تحدد الطالبة مصدر الصوت واتجاهه بشكل صحيح بنسبة 80%');
-      shorts.push('أن تميز الطالبة الأصوات الستة (أ، م، ي، س، ش، و) بنسبة 80%');
-    }
-    
-    if (hasAuditoryComprehension) {
-      shorts.push('أن تفهم الطالبة الكلمات والجمل المسموعة بشكل صحيح بنسبة 80%');
-      shorts.push('أن تستجيب الطالبة للتعليمات الشفهية البسيطة بنسبة 80%');
-    }
-    
+  // Combine all short-term goals from detected weak areas
+  const allShorts = [];
+  
+  if (awarenessItems.length > 0) {
+    allShorts.push(...awarenessItems.map(item => 
+      auditoryGoalMapping[item.id] || `تحسين ${item.label} بنسبة 80%`
+    ));
+  }
+  
+  if (discriminationItems.length > 0) {
+    allShorts.push(...discriminationItems.map(item => 
+      auditoryGoalMapping[item.id] || `تحسين ${item.label} بنسبة 80%`
+    ));
+  }
+  
+  if (comprehensionItems.length > 0) {
+    allShorts.push(...comprehensionItems.map(item => 
+      auditoryGoalMapping[item.id] || `تحسين ${item.label} بنسبة 80%`
+    ));
+  }
+  
+  // Generate ONE auditory goal with all relevant short-term goals
+  if (allShorts.length > 0) {
     goals.push({
       long: 'أن تنمي الطالبة المهارات السمعية والإدراك السمعي لديها بشكل صحيح',
-      shorts: shorts,
+      shorts: allShorts,
       category: 'articulation'
     });
   }
