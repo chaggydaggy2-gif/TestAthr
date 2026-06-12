@@ -2427,14 +2427,31 @@ function viewParentDashboard() {
             ${FORM_TYPES.map(ft => {
               const data = (child.forms || {})[ft.key] || {};
               const done = data.signed || data.completed;
+              
+              // Speech test gets a download button if completed
+              if (ft.key === 'speechTest' && done) {
+                return `
+                  <div class="row between" style="padding:8px 0;border-bottom:1px dashed var(--border)">
+                    <div class="row">
+                      <div style="font-size:18px">${ft.icon}</div>
+                      <div class="text-sm">${esc(ft.name)}</div>
+                    </div>
+                    <button class="btn sm soft" data-action="download-speech-test-pdf" data-sid="${child.id}">
+                      ${I.download}<span>تحميل PDF</span>
+                    </button>
+                  </div>
+                `;
+              }
+              
+              // Other forms just show status
               return `
-                <a href="#/parent/form/${ft.key}" data-route="#/parent/form/${ft.key}" class="row between" style="padding:8px 0;border-bottom:1px dashed var(--border);text-decoration:none;color:inherit;cursor:pointer">
+                <div class="row between" style="padding:8px 0;border-bottom:1px dashed var(--border)">
                   <div class="row">
                     <div style="font-size:18px">${ft.icon}</div>
                     <div class="text-sm">${esc(ft.name)}</div>
                   </div>
-                  ${done ? pill('مكتمل','mint dot') + ' ' + I.eye : pill('بانتظار','amber dot')}
-                </a>
+                  ${done ? pill('مكتمل','mint dot') : pill('بانتظار','amber dot')}
+                </div>
               `;
             }).join('')}
           </div>
@@ -2460,6 +2477,102 @@ function viewParentDashboard() {
       </div>
     </div>
   `;
+}
+
+function generateSpeechTestPDF(student) {
+  const data = student.forms.speechTest;
+  const results = data.results || {};
+  const remarks = data.remarks || {};
+  
+  // Create a new window with the test formatted for printing
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <title>اختبار مخارج الأصوات - ${student.name}</title>
+      <style>
+        @page { size: A4; margin: 2cm; }
+        body { font-family: 'Tajawal', 'Cairo', 'Segoe UI', sans-serif; direction: rtl; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 3px solid #000; padding-bottom: 15px; }
+        .header h1 { font-size: 18px; margin: 5px 0; }
+        .header img { height: 60px; }
+        .info-row { display: flex; justify-content: space-between; margin: 10px 0; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+        th, td { border: 1px solid #000; padding: 6px; text-align: center; }
+        th { background: #333; color: white; font-weight: bold; }
+        td.words { text-align: right; }
+        .checkbox { width: 16px; height: 16px; border: 2px solid #000; display: inline-block; position: relative; }
+        .checkbox.checked::after { content: '✓'; position: absolute; top: -4px; left: 2px; font-size: 18px; font-weight: bold; }
+        .footer { text-align: center; margin-top: 30px; font-size: 13px; }
+        @media print {
+          body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>المملكة العربية السعودية</h1>
+        <h1>وزارة التربية والتعليم</h1>
+        <h1>إدارة التربية والتعليم بالرياض</h1>
+        <h1>مكاتب و برامج التربية الخاصة</h1>
+        <h1 style="margin-top: 20px;">اختبار مخارج الأصوات العربية المطور</h1>
+      </div>
+      
+      <div class="info-row">
+        <div><strong>الاسم:</strong> ${student.name}</div>
+        <div><strong>الصف:</strong> ${student.grade || '____'}</div>
+        <div><strong>تاريخ الميلاد:</strong> ${student.birthdate || '____'}</div>
+      </div>
+      <div class="info-row">
+        <div><strong>تاريخ الاختبار:</strong> ${data.date || new Date().toISOString().slice(0,10)}</div>
+      </div>
+      
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40px;">الرقم</th>
+            <th style="width: 40px;">الصوت</th>
+            <th>المفــــــــــردات</th>
+            <th style="width: 50px;">أول</th>
+            <th style="width: 50px;">وسط</th>
+            <th style="width: 50px;">أخر</th>
+            <th style="width: 50px;">محرك</th>
+            <th style="width: 150px;">ملاحظات</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${SPEECH_TEST_SOUNDS.map(s => {
+            const r = results[s.id] || {};
+            return `
+            <tr>
+              <td>${s.num}</td>
+              <td style="font-weight: bold; font-size: 14px;">${s.sound}</td>
+              <td class="words">${s.words}</td>
+              <td><div class="checkbox ${r.first ? 'checked' : ''}"></div></td>
+              <td><div class="checkbox ${r.middle ? 'checked' : ''}"></div></td>
+              <td><div class="checkbox ${r.last ? 'checked' : ''}"></div></td>
+              <td><div class="checkbox ${r.moving ? 'checked' : ''}"></div></td>
+              <td style="text-align: right; font-size: 11px;">${remarks[s.id] || ''}</td>
+            </tr>
+          `}).join('')}
+        </tbody>
+      </table>
+      
+      <div class="footer">
+        <p><strong>أخصائية التخاطب و السمع</strong></p>
+      </div>
+      
+      <script>
+        window.onload = function() {
+          window.print();
+        };
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
 }
 
 function viewParentForm(formKey) {
@@ -3519,6 +3632,18 @@ document.addEventListener('click', async (e) => {
         drop.querySelector('.file-drop-empty')?.classList.remove('hide');
         drop.querySelector('.file-drop-chosen')?.classList.add('hide');
       }
+      return;
+    }
+    if (a === 'download-speech-test-pdf') {
+      const sid = action.getAttribute('data-sid');
+      const st = studentBy(sid);
+      if (!st || !st.forms?.speechTest?.completed) {
+        toast('لم يُكمل الاختبار بعد', 'warn');
+        return;
+      }
+      
+      // Generate and download PDF
+      generateSpeechTestPDF(st);
       return;
     }
     if (a === 'download-library') {
