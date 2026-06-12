@@ -405,6 +405,7 @@ async function handleRoute() {
       rewards:   viewParentRewards,
       library:   () => viewLibrary('parent'),
       settings:  () => viewSettings('parent'),
+      form:      () => viewParentForm(id),
     })[screen];
   }
 
@@ -2427,13 +2428,13 @@ function viewParentDashboard() {
               const data = (child.forms || {})[ft.key] || {};
               const done = data.signed || data.completed;
               return `
-                <div class="row between" style="padding:8px 0;border-bottom:1px dashed var(--border)">
+                <a href="#/parent/form/${ft.key}" data-route="#/parent/form/${ft.key}" class="row between" style="padding:8px 0;border-bottom:1px dashed var(--border);text-decoration:none;color:inherit;cursor:pointer">
                   <div class="row">
                     <div style="font-size:18px">${ft.icon}</div>
                     <div class="text-sm">${esc(ft.name)}</div>
                   </div>
-                  ${done ? pill('مكتمل','mint dot') : pill('بانتظار','amber dot')}
-                </div>
+                  ${done ? pill('مكتمل','mint dot') + ' ' + I.eye : pill('بانتظار','amber dot')}
+                </a>
               `;
             }).join('')}
           </div>
@@ -2457,6 +2458,58 @@ function viewParentDashboard() {
           </div>
         </div>
       </div>
+    </div>
+  `;
+}
+
+function viewParentForm(formKey) {
+  const me = STATE.user;
+  const child = studentBy(me.studentId);
+  
+  if (!child) {
+    return `
+      <div class="empty">
+        <div class="ico">${I.search}</div>
+        <h4>لم يتم العثور على ملف الطالب</h4>
+      </div>
+    `;
+  }
+  
+  const ft = FORM_TYPES.find(f => f.key === formKey);
+  if (!ft) return viewNotFound();
+  
+  const data = (child.forms || {})[formKey] || {};
+  const done = data.signed || data.completed;
+  
+  let formBody = '';
+  if (formKey === 'speechTest') {
+    formBody = renderSpeechTestForm(child, data, true); // viewOnly = true
+  } else if (formKey === 'preAssessment') {
+    formBody = renderPreAssessmentForm(child, data, true);
+  } else if (formKey === 'parentConsent') {
+    formBody = renderParentConsentForm(child, data, true);
+  } else if (formKey === 'auditoryMemoryTest') {
+    formBody = renderAuditoryMemoryForm(child, data, true);
+  }
+  
+  return `
+    <div class="page-head">
+      <div>
+        <a href="#/parent/dashboard" data-route="#/parent/dashboard" class="back-btn">${I.back}</a>
+        <h1>${ft.icon} ${esc(ft.name)}</h1>
+        <div class="sub">${esc(ft.sub)}</div>
+      </div>
+      ${done ? `<div>${pill('مكتمل', 'mint')}</div>` : ''}
+    </div>
+    
+    <div class="card">
+      ${!done ? `
+        <div class="empty">
+          <div class="ico">${ft.icon}</div>
+          <h4>لم يُكمل بعد</h4>
+          <p>ستتمكنين من مشاهدة النتائج فور إكمال المعلمة للنموذج</p>
+        </div>
+      ` : formBody}
     </div>
   `;
 }
