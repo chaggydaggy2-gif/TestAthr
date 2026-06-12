@@ -4453,19 +4453,43 @@ document.addEventListener('submit', (e) => {
       };
       console.log('✅ preAssessment saved:', {completed, score: pct, answered, total});
     } else if (fkey === 'speechTest') {
-      const results = {}; const weakPoints = []; let correct = 0, total = 0;
+      const results = {};
+      const remarks = {};
+      const weakPoints = [];
+      let totalChecks = 0;
+      let correctChecks = 0;
+      
       SPEECH_TEST_SOUNDS.forEach(s => {
-        const v = fd.get(`s_${s.id}`);
-        if (v) {
-          results[s.id] = v; total += 1;
-          if (v === 'correct') correct += 1;
-          else weakPoints.push(s.label.replace(/\s*\(.*\)$/, ''));
+        const first = fd.get(`s_${s.id}_first`) === 'on';
+        const middle = fd.get(`s_${s.id}_middle`) === 'on';
+        const last = fd.get(`s_${s.id}_last`) === 'on';
+        const moving = fd.get(`s_${s.id}_moving`) === 'on';
+        const remark = fd.get(`remark_${s.id}`) || '';
+        
+        results[s.id] = { first, middle, last, moving };
+        if (remark) remarks[s.id] = remark;
+        
+        // Count total checks and correct (checked) ones
+        totalChecks += 4;
+        if (first) correctChecks++;
+        if (middle) correctChecks++;
+        if (last) correctChecks++;
+        if (moving) correctChecks++;
+        
+        // If any position is unchecked, it's a weak point
+        if (!first || !middle || !last || !moving) {
+          weakPoints.push(`${s.sound} (${s.words.split(' - ')[0]})`);
         }
       });
-      const pct = total ? Math.round((correct / total) * 100) : 0;
+      
+      const pct = totalChecks ? Math.round((correctChecks / totalChecks) * 100) : 0;
       st.forms.speechTest = {
-        completed: true, date: today, score: pct,
-        weakPoints, results, notes,
+        completed: true,
+        date: today,
+        score: pct,
+        weakPoints,
+        results,
+        remarks,
       };
     } else if (fkey === 'auditoryMemoryTest') {
       const tasks = {}; let score = 0, totalMax = 0;
@@ -5266,18 +5290,34 @@ function openAddSlotModal(presetDay) {
    Form questionnaires (4 real forms)
    ========================================================= */
 const SPEECH_TEST_SOUNDS = [
-  { id: 'r',  label: 'حرف الراء (راء، رمل، نار)' },
-  { id: 's',  label: 'حرف السين (سمك، شمس)' },
-  { id: 'sh', label: 'حرف الشين (شجرة، عش)' },
-  { id: 'k',  label: 'حرف الكاف (كتاب، سمك)' },
-  { id: 'q',  label: 'حرف القاف (قلم، حق)' },
-  { id: 'th', label: 'حرف الثاء (ثلج، حديث)' },
-  { id: 'dh', label: 'حرف الذال (ذهب، أستاذ)' },
-  { id: 'l',  label: 'حرف اللام (ليل، قمل)' },
-  { id: 'n',  label: 'حرف النون (نور، حنين)' },
-  { id: 'words3', label: 'كلمات من ٣ مقاطع (مدرسة، تفاحة)' },
-  { id: 'sentence4', label: 'جمل من ٤ كلمات' },
-  { id: 'pres-tense', label: 'استخدام الزمن المضارع' },
+  { num: 1,  id: 'm',  sound: 'م', words: 'موز - جمل - قلم' },
+  { num: 2,  id: 'n',  sound: 'ن', words: 'نمر - جبن - سن' },
+  { num: 3,  id: 'f',  sound: 'ف', words: 'فيل - ظفر - خروف' },
+  { num: 4,  id: 'h',  sound: 'ه', words: 'هدية - زهرة' },
+  { num: 5,  id: 'w',  sound: 'و', words: 'ولد - مرز - رادييو' },
+  { num: 6,  id: 'j',  sound: 'ي', words: 'يد - سيارة - شاي' },
+  { num: 7,  id: 'b',  sound: 'ب', words: 'باب - صبح - باب' },
+  { num: 8,  id: 'd',  sound: 'د', words: 'دب - بدر - يد' },
+  { num: 9,  id: 'k',  sound: 'ك', words: 'كأس - سكين - سمك' },
+  { num: 10, id: 'r',  sound: 'ر', words: 'رجل - مرير' },
+  { num: 11, id: 's',  sound: 'س', words: 'ساعة كرسي كيس' },
+  { num: 12, id: 'sh', sound: 'ش', words: 'شعر - مشط - ريش' },
+  { num: 13, id: 'l',  sound: 'ل', words: 'نظارة - بقلاوة' },
+  { num: 14, id: 'lam',sound: 'ل', words: 'لحم - قلم - جمل' },
+  { num: 15, id: 'th', sound: 'ث', words: 'ثوب - مثلث' },
+  { num: 16, id: 'dh', sound: 'ذ', words: 'ذرة - لذن - تلميذ' },
+  { num: 17, id: 'z',  sound: 'ز', words: 'زرافة - يزر - فول' },
+  { num: 18, id: 'dj', sound: 'ج', words: 'جمل - رجل - ثلج' },
+  { num: 19, id: 'kh', sound: 'خ', words: 'خس - مخز - مطبخ' },
+  { num: 20, id: 'ha', sound: 'ح', words: 'حصان - أحمر - تفاح' },
+  { num: 21, id: 'khm',sound: 'خ', words: 'خروف - أخضر - بطيخ' },
+  { num: 22, id: 'sad',sound: 'ص', words: 'صح - بصل - قميص' },
+  { num: 23, id: 'dad',sound: 'ض', words: 'ضفدع - أخضر - بيض' },
+  { num: 24, id: 't',  sound: 'ط', words: 'طبل - بطة - مشط' },
+  { num: 25, id: 'zah',sound: 'ظ', words: 'ظفر - نظارة' },
+  { num: 26, id: 'ein',sound: 'ع', words: 'عين - شعر - أصبع' },
+  { num: 27, id: 'gh', sound: 'غ', words: 'غزال - مغسلة - صباغ' },
+  { num: 28, id: 'q',  sound: 'ق', words: 'قدم - بقرة - أزرق' },
 ];
 
 /* Pre-assessment — comprehensive Ministry of Education template
@@ -5725,33 +5765,77 @@ function renderPreAssessmentForm(st, data, viewOnly) {
 
 function renderSpeechTestForm(st, data, viewOnly) {
   const results = data.results || {};
+  const remarks = data.remarks || {};
+  
   return `
-    <form data-form="save-form" data-sid="${st.id}" data-fkey="speechTest">
-      <p class="text-sm text-muted mb-md">حدّدي حالة كل صوت/مهارة:</p>
-      <div class="stack gap-sm">
-        ${SPEECH_TEST_SOUNDS.map(s => `
-          <div class="q-row">
-            <div class="text-sm" style="flex:1">${esc(s.label)}</div>
-            <div class="row">
-              ${[
-                {v:'correct', l:'سليم', c:'mastered'},
-                {v:'distort', l:'محرف', c:'partial'},
-                {v:'omit',    l:'حذف',  c:'not-mastered'},
-              ].map(o => `
-                <label class="chip eval-chip ${o.c} ${results[s.id] === o.v ? 'active' : ''}">
-                  <input type="radio" name="s_${s.id}" value="${o.v}" ${results[s.id] === o.v ? 'checked' : ''} hidden ${viewOnly ? 'disabled' : ''}>
-                  ${esc(o.l)}
-                </label>
-              `).join('')}
-            </div>
-          </div>
-        `).join('')}
+    <form data-form="save-form" data-sid="${st.id}" data-fkey="speechTest" style="overflow-x: auto;">
+      <div class="speech-test-header" style="background: #f5f5f5; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+        <h3 style="text-align: center; margin: 0 0 8px 0;">اختبار مخارج الأصوات العربية المطور</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 14px;">
+          <div><strong>الاسم:</strong> ${esc(st.name)}</div>
+          <div><strong>تاريخ الميلاد:</strong> ${st.birthdate || '___________'}</div>
+          <div><strong>تاريخ الاختبار:</strong> ${data.date || new Date().toISOString().slice(0,10)}</div>
+          <div><strong>الصف:</strong> ${esc(st.grade || '_______')}</div>
+        </div>
       </div>
-      <div class="field mt-md">
-        <label>ملاحظات إضافية</label>
-        <textarea name="notes" ${viewOnly ? 'disabled' : ''}>${esc(data.notes || '')}</textarea>
+      
+      <table class="speech-test-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+        <thead>
+          <tr style="background: #333; color: white;">
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">الرقم</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">الصوت</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">المفــــــــــردات</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">أول</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">وسط</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">أخر</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">محرك</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: center; min-width: 150px;">ملاحظات</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${SPEECH_TEST_SOUNDS.map(s => {
+            const r = results[s.id] || {};
+            return `
+            <tr>
+              <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${arNum(s.num)}</td>
+              <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; font-size: 16px;">${s.sound}</td>
+              <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${s.words}</td>
+              <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">
+                <input type="checkbox" name="s_${s.id}_first" ${r.first ? 'checked' : ''} ${viewOnly ? 'disabled' : ''} 
+                       style="width: 16px; height: 16px; cursor: pointer;">
+              </td>
+              <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">
+                <input type="checkbox" name="s_${s.id}_middle" ${r.middle ? 'checked' : ''} ${viewOnly ? 'disabled' : ''} 
+                       style="width: 16px; height: 16px; cursor: pointer;">
+              </td>
+              <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">
+                <input type="checkbox" name="s_${s.id}_last" ${r.last ? 'checked' : ''} ${viewOnly ? 'disabled' : ''} 
+                       style="width: 16px; height: 16px; cursor: pointer;">
+              </td>
+              <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">
+                <input type="checkbox" name="s_${s.id}_moving" ${r.moving ? 'checked' : ''} ${viewOnly ? 'disabled' : ''} 
+                       style="width: 16px; height: 16px; cursor: pointer;">
+              </td>
+              <td style="padding: 4px; border: 1px solid #ddd;">
+                <input type="text" name="remark_${s.id}" value="${esc(remarks[s.id] || '')}" ${viewOnly ? 'disabled' : ''}
+                       style="width: 100%; border: none; padding: 4px; font-size: 12px;" placeholder="ملاحظات">
+              </td>
+            </tr>
+          `}).join('')}
+        </tbody>
+      </table>
+      
+      <div style="margin-top: 16px; padding: 12px; background: #f9f9f9; border-radius: 8px;">
+        <p style="margin: 0; font-size: 13px; text-align: center;">
+          <strong>أخصائية التخاطب و السمع</strong>
+        </p>
       </div>
-      ${!viewOnly ? `<button type="submit" class="btn lg block">${I.check}<span>حفظ الاختبار</span></button>` : ''}
+      
+      ${!viewOnly ? `
+        <button type="submit" class="btn lg block" style="margin-top: 16px;">
+          ${I.check}<span>حفظ الاختبار</span>
+        </button>
+      ` : ''}
     </form>
   `;
 }
@@ -6295,9 +6379,12 @@ function generateLanguageGoals(weakPoints) {
   }
   
   if (expressiveItems.length > 0) {
+    console.log('📝 EXPRESSIVE ITEMS:', expressiveItems);
+    const shorts = expressiveItems.map(item => goalMapping[item.id] || `تحسين ${item.label} بنسبة 80%`);
+    console.log('📝 EXPRESSIVE SHORTS:', shorts);
     goals.push({
       long: 'أن تنمي الطالبة اللغة التعبيرية لديها بشكل صحيح',
-      shorts: expressiveItems.map(item => goalMapping[item.id] || `تحسين ${item.label} بنسبة 80%`),
+      shorts: shorts,
       category: 'language_informal'
     });
   }
