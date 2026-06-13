@@ -329,6 +329,108 @@ function closeModal() {
 }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
+/* --------------- IMAGE NAVIGATOR --------------- */
+function openImageNavigator() {
+  let currentPage = 1;
+  const totalPages = 112;
+  
+  const navigatorHTML = `
+    <div class="modal-head">
+      <h2>📚 بور التشخيص الكامل</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <div style="padding: 20px;">
+      <div style="display: flex; gap: 12px; align-items: center; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;">
+        <button class="btn" onclick="navigateImagePage('first')" style="background: var(--purple);">
+          ⏮️<span>الأولى</span>
+        </button>
+        <button class="btn" onclick="navigateImagePage('prev')" style="background: var(--blue);">
+          ◀️<span>السابقة</span>
+        </button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span style="font-weight: 600;">الصفحة:</span>
+          <input 
+            type="number" 
+            id="page-input" 
+            min="1" 
+            max="${totalPages}" 
+            value="1"
+            onkeypress="if(event.key==='Enter') navigateImagePage('jump')"
+            style="width: 70px; padding: 8px; border: 2px solid var(--border-strong); border-radius: 8px; text-align: center; font-size: 16px; font-weight: 600;"
+          >
+          <span style="color: var(--text-muted);">/ ${totalPages}</span>
+        </div>
+        <button class="btn" onclick="navigateImagePage('next')" style="background: var(--blue);">
+          <span>التالية</span>▶️
+        </button>
+        <button class="btn" onclick="navigateImagePage('last')" style="background: var(--purple);">
+          <span>الأخيرة</span>⏭️
+        </button>
+      </div>
+      
+      <div id="image-container" style="text-align: center; background: #f5f5f5; border-radius: 12px; padding: 20px; min-height: 400px;">
+        <img 
+          id="diagnostic-image" 
+          src="./بور-التشخيص-كامل.jpg" 
+          alt="صورة التشخيص"
+          style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"
+        >
+        <div style="margin-top: 12px; font-size: 18px; font-weight: 600; color: var(--blue);">
+          الصفحة <span id="current-page-display">1</span> من ${totalPages}
+        </div>
+      </div>
+      
+      <div style="margin-top: 16px; padding: 12px; background: var(--blue-50); border-radius: 8px; text-align: center;">
+        <p style="margin: 0; font-size: 13px; color: var(--blue);">
+          💡 <strong>نصيحة:</strong> اكتب رقم الصفحة مباشرة واضغط Enter للانتقال السريع
+        </p>
+      </div>
+    </div>
+  `;
+  
+  openModal(navigatorHTML, { lg: true });
+  
+  // Store current page in window for access by navigation buttons
+  window.currentDiagnosticPage = 1;
+}
+
+function navigateImagePage(action) {
+  const totalPages = 112;
+  let newPage = window.currentDiagnosticPage || 1;
+  
+  switch(action) {
+    case 'first':
+      newPage = 1;
+      break;
+    case 'last':
+      newPage = totalPages;
+      break;
+    case 'prev':
+      newPage = Math.max(1, newPage - 1);
+      break;
+    case 'next':
+      newPage = Math.min(totalPages, newPage + 1);
+      break;
+    case 'jump':
+      const input = document.getElementById('page-input');
+      newPage = parseInt(input.value) || 1;
+      newPage = Math.max(1, Math.min(totalPages, newPage));
+      break;
+  }
+  
+  window.currentDiagnosticPage = newPage;
+  
+  // Update input and display
+  const input = document.getElementById('page-input');
+  const display = document.getElementById('current-page-display');
+  if (input) input.value = newPage;
+  if (display) display.textContent = newPage;
+  
+  // Note: Since it's a single image file, we just update the page number
+  // If you later split into multiple images, update src here:
+  // document.getElementById('diagnostic-image').src = `./images/diagnostic/${newPage}.jpg`;
+}
+
 /* --------------- ROUTER --------------- */
 function navigate(path) {
   if (location.hash !== path) location.hash = path;
@@ -5957,14 +6059,17 @@ function renderSpeechTestForm(st, data, viewOnly) {
         </div>
       </div>
       
-      <div style="text-align: center; margin-bottom: 16px;">
+      <div style="text-align: center; margin-bottom: 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
         <button type="button" class="btn soft" onclick="document.getElementById('speech-images-toggle').click()">
           ${I.image}<span>عرض الصور</span>
+        </button>
+        <button type="button" class="btn" onclick="openImageNavigator()" style="background: var(--blue); color: white;">
+          📚<span>عرض بور التشخيص (1-112)</span>
         </button>
         <input type="checkbox" id="speech-images-toggle" style="display: none;" onchange="
           const show = this.checked;
           document.querySelectorAll('.speech-img-cell').forEach(el => el.style.display = show ? 'table-cell' : 'none');
-          this.previousElementSibling.querySelector('span').textContent = show ? 'إخفاء الصور' : 'عرض الصور';
+          this.previousElementSibling.previousElementSibling.querySelector('span').textContent = show ? 'إخفاء الصور' : 'عرض الصور';
         ">
       </div>
       
