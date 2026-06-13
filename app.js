@@ -371,10 +371,14 @@ function openImageNavigator() {
       <div id="image-container" style="text-align: center; background: #f5f5f5; border-radius: 12px; padding: 20px; min-height: 400px;">
         <img 
           id="diagnostic-image" 
-          src="./بور-التشخيص-كامل.jpg" 
+          src="./بور-التشخيص-كامل.jpg/1.jpg" 
           alt="صورة التشخيص"
           style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
         >
+        <div style="display: none; padding: 40px; color: var(--critical); font-size: 16px;">
+          ❌ لا يمكن تحميل الصورة
+        </div>
         <div style="margin-top: 12px; font-size: 18px; font-weight: 600; color: var(--blue);">
           الصفحة <span id="current-page-display">1</span> من ${totalPages}
         </div>
@@ -423,12 +427,21 @@ function navigateImagePage(action) {
   // Update input and display
   const input = document.getElementById('page-input');
   const display = document.getElementById('current-page-display');
+  const img = document.getElementById('diagnostic-image');
+  
   if (input) input.value = newPage;
   if (display) display.textContent = newPage;
   
-  // Note: Since it's a single image file, we just update the page number
-  // If you later split into multiple images, update src here:
-  // document.getElementById('diagnostic-image').src = `./images/diagnostic/${newPage}.jpg`;
+  // Update image source - try both .jpg and .png extensions
+  if (img) {
+    // Reset error state
+    img.style.display = 'block';
+    img.nextElementSibling.style.display = 'none';
+    
+    // Determine file extension (1-93 are .jpg, 94-112 are .png based on the git output)
+    const ext = newPage <= 93 ? 'jpg' : 'png';
+    img.src = `./بور-التشخيص-كامل.jpg/${newPage}.${ext}`;
+  }
 }
 
 /* --------------- ROUTER --------------- */
