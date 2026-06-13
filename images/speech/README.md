@@ -17,10 +17,10 @@ Place the images for each sound in this folder with the following names:
 - t.jpg - تفاح - خاتم - بيت
 - lam.jpg - لحم - قلم - جمل
 - th.jpg - ثوب - مثلث
-- dh.jpg - ذرة - لذن - تلميذ
+- dh.jpg - ذرة - أذن - تلميذ
 - z.jpg - زرافة - يزر - موز
 - j.jpg - جمل - رجل - ثلج
-- kha.jpg - أرنب - فأر - ماء
+- hamza.jpg - أرنب - فأر - ماء
 - ha.jpg - حصان - أحمر - تفاح
 - kh.jpg - خروف - أخضر - بطيخ
 - sad.jpg - صح - بصل - قميص
