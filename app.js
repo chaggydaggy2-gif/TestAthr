@@ -5957,11 +5957,23 @@ function renderSpeechTestForm(st, data, viewOnly) {
         </div>
       </div>
       
+      <div style="text-align: center; margin-bottom: 16px;">
+        <button type="button" class="btn soft" onclick="document.getElementById('speech-images-toggle').click()">
+          ${I.image}<span>عرض الصور</span>
+        </button>
+        <input type="checkbox" id="speech-images-toggle" style="display: none;" onchange="
+          const show = this.checked;
+          document.querySelectorAll('.speech-img-cell').forEach(el => el.style.display = show ? 'table-cell' : 'none');
+          this.previousElementSibling.querySelector('span').textContent = show ? 'إخفاء الصور' : 'عرض الصور';
+        ">
+      </div>
+      
       <table class="speech-test-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
         <thead>
           <tr style="background: #333; color: white;">
             <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">الرقم</th>
             <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">الصوت</th>
+            <th class="speech-img-cell" style="padding: 8px; border: 1px solid #ddd; text-align: center; display: none;">الصور</th>
             <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">المفــــــــــردات</th>
             <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">أول</th>
             <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">وسط</th>
@@ -5977,6 +5989,13 @@ function renderSpeechTestForm(st, data, viewOnly) {
             <tr>
               <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${arNum(s.num)}</td>
               <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; font-size: 16px;">${s.sound}</td>
+              <td class="speech-img-cell" style="padding: 6px; border: 1px solid #ddd; text-align: center; display: none;">
+                <img src="./images/speech/${s.id}.jpg" alt="${s.words}" 
+                     style="max-width: 120px; max-height: 80px; object-fit: contain; cursor: pointer;"
+                     onclick="window.open(this.src, '_blank')"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+                <span style="display:none; font-size:11px; color:#999;">لا توجد صورة</span>
+              </td>
               <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${s.words}</td>
               <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">
                 <input type="checkbox" name="s_${s.id}_first" ${r.first ? 'checked' : ''} ${viewOnly ? 'disabled' : ''} 
