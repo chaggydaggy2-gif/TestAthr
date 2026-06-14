@@ -371,7 +371,7 @@ function openImageNavigator() {
       <div id="image-container" style="text-align: center; background: #f5f5f5; border-radius: 12px; padding: 20px; min-height: 400px;">
         <img 
           id="diagnostic-image" 
-          src="./بور-التشخيص-كامل.jpg/1.jpg" 
+          src="./بور-التشخيص-كامل.jpg/بور-التشخيص-كامل.jpg/1.jpg" 
           alt="صورة التشخيص"
           style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
@@ -440,7 +440,7 @@ function navigateImagePage(action) {
     
     // Determine file extension (1-93 are .jpg, 94-112 are .png based on the git output)
     const ext = newPage <= 93 ? 'jpg' : 'png';
-    img.src = `./بور-التشخيص-كامل.jpg/${newPage}.${ext}`;
+    img.src = `./بور-التشخيص-كامل.jpg/بور-التشخيص-كامل.jpg/${newPage}.${ext}`;
   }
 }
 
