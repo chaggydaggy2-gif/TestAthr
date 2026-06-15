@@ -346,18 +346,25 @@ function openImageNavigator() {
   let currentPage = 1;
   const totalPages = 112;
   
+  // Default settings
+  window.imageViewerSettings = {
+    width: 400,
+    zoom: 100,
+    position: 'left'
+  };
+  
   const viewerHTML = `
-    <div id="side-image-viewer" style="position: fixed; left: 20px; top: 80px; width: 400px; max-height: calc(100vh - 100px); background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 9999; overflow: hidden; display: flex; flex-direction: column;">
+    <div id="side-image-viewer" style="position: fixed; left: 20px; top: 80px; width: 400px; max-height: calc(100vh - 100px); background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 9999; overflow: hidden; display: flex; flex-direction: column; transition: all 0.3s ease;">
       <div style="background: var(--blue); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0; font-size: 16px; font-weight: 600;">📚 إختبار النطق المصور</h3>
         <button onclick="openImageNavigator()" style="background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">×</button>
       </div>
       
-      <div style="padding: 16px; display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; border-bottom: 1px solid #e0e0e0;">
-        <button class="btn" onclick="navigateImagePage('first')" style="background: var(--purple); padding: 6px 12px;">
+      <div style="padding: 12px; display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; border-bottom: 1px solid #e0e0e0;">
+        <button class="btn" onclick="navigateImagePage('first')" style="background: var(--purple); padding: 6px 10px; font-size: 14px;">
           ⏮️
         </button>
-        <button class="btn" onclick="navigateImagePage('prev')" style="background: var(--blue); padding: 6px 12px;">
+        <button class="btn" onclick="navigateImagePage('prev')" style="background: var(--blue); padding: 6px 10px; font-size: 14px;">
           ◀️
         </button>
         <div style="display: flex; gap: 6px; align-items: center;">
@@ -372,12 +379,25 @@ function openImageNavigator() {
           >
           <span style="color: var(--text-muted); font-size: 14px;">/ ${totalPages}</span>
         </div>
-        <button class="btn" onclick="navigateImagePage('next')" style="background: var(--blue); padding: 6px 12px;">
+        <button class="btn" onclick="navigateImagePage('next')" style="background: var(--blue); padding: 6px 10px; font-size: 14px;">
           ▶️
         </button>
-        <button class="btn" onclick="navigateImagePage('last')" style="background: var(--purple); padding: 6px 12px;">
+        <button class="btn" onclick="navigateImagePage('last')" style="background: var(--purple); padding: 6px 10px; font-size: 14px;">
           ⏭️
         </button>
+      </div>
+      
+      <div style="padding: 8px 12px; display: flex; gap: 6px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-bottom: 1px solid #e0e0e0; background: #f9f9f9;">
+        <div style="display: flex; gap: 4px;">
+          <button class="btn soft" onclick="adjustImageZoom('in')" title="تكبير" style="padding: 4px 8px; font-size: 16px;">🔍+</button>
+          <button class="btn soft" onclick="adjustImageZoom('out')" title="تصغير" style="padding: 4px 8px; font-size: 16px;">🔍-</button>
+          <button class="btn soft" onclick="adjustImageZoom('reset')" title="إعادة ضبط" style="padding: 4px 8px; font-size: 12px;">100%</button>
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn soft" onclick="adjustViewerWidth('wider')" title="توسيع" style="padding: 4px 8px; font-size: 14px;">↔️</button>
+          <button class="btn soft" onclick="adjustViewerWidth('narrower')" title="تضييق" style="padding: 4px 8px; font-size: 14px;">→←</button>
+          <button class="btn soft" onclick="toggleViewerPosition()" title="تغيير الجانب" style="padding: 4px 8px; font-size: 14px;">↔</button>
+        </div>
       </div>
       
       <div id="image-container" style="flex: 1; text-align: center; background: #f5f5f5; padding: 12px; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -385,7 +405,7 @@ function openImageNavigator() {
           id="diagnostic-image" 
           src="./بور-التشخيص-كامل.jpg/1.jpg" 
           alt="صورة التشخيص"
-          style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+          style="max-width: 100%; height: auto; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transform: scale(1); transition: transform 0.2s ease;"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
         >
         <div style="display: none; padding: 20px; color: var(--critical); font-size: 14px;">
@@ -403,6 +423,54 @@ function openImageNavigator() {
   
   container.insertAdjacentHTML('afterbegin', viewerHTML);
   window.currentDiagnosticPage = 1;
+}
+
+function adjustImageZoom(action) {
+  const img = document.getElementById('diagnostic-image');
+  if (!img) return;
+  
+  const settings = window.imageViewerSettings;
+  
+  if (action === 'in') {
+    settings.zoom = Math.min(200, settings.zoom + 25);
+  } else if (action === 'out') {
+    settings.zoom = Math.max(50, settings.zoom - 25);
+  } else if (action === 'reset') {
+    settings.zoom = 100;
+  }
+  
+  img.style.transform = `scale(${settings.zoom / 100})`;
+}
+
+function adjustViewerWidth(action) {
+  const viewer = document.getElementById('side-image-viewer');
+  if (!viewer) return;
+  
+  const settings = window.imageViewerSettings;
+  
+  if (action === 'wider') {
+    settings.width = Math.min(800, settings.width + 100);
+  } else if (action === 'narrower') {
+    settings.width = Math.max(300, settings.width - 100);
+  }
+  
+  viewer.style.width = settings.width + 'px';
+}
+
+function toggleViewerPosition() {
+  const viewer = document.getElementById('side-image-viewer');
+  if (!viewer) return;
+  
+  const settings = window.imageViewerSettings;
+  settings.position = settings.position === 'left' ? 'right' : 'left';
+  
+  if (settings.position === 'right') {
+    viewer.style.left = 'auto';
+    viewer.style.right = '20px';
+  } else {
+    viewer.style.right = 'auto';
+    viewer.style.left = '20px';
+  }
 }
 
 function navigateImagePage(action) {
