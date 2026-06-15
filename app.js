@@ -331,24 +331,36 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal
 
 /* --------------- IMAGE NAVIGATOR --------------- */
 function openImageNavigator() {
+  // Toggle the image viewer visibility
+  const viewer = document.getElementById('side-image-viewer');
+  if (viewer) {
+    viewer.remove();
+    window.currentDiagnosticPage = null;
+    return;
+  }
+  
+  // Create side-by-side viewer
+  const container = document.querySelector('.modal');
+  if (!container) return;
+  
   let currentPage = 1;
   const totalPages = 112;
   
-  const navigatorHTML = `
-    <div class="modal-head">
-      <h2>📚 إختبار النطق المصور</h2>
-      <button class="x" data-action="close-modal">${I.close}</button>
-    </div>
-    <div style="padding: 20px;">
-      <div style="display: flex; gap: 12px; align-items: center; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;">
-        <button class="btn" onclick="navigateImagePage('first')" style="background: var(--purple);">
-          ⏮️<span>الأولى</span>
+  const viewerHTML = `
+    <div id="side-image-viewer" style="position: fixed; left: 20px; top: 80px; width: 400px; max-height: calc(100vh - 100px); background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 9999; overflow: hidden; display: flex; flex-direction: column;">
+      <div style="background: var(--blue); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 600;">📚 إختبار النطق المصور</h3>
+        <button onclick="openImageNavigator()" style="background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">×</button>
+      </div>
+      
+      <div style="padding: 16px; display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; border-bottom: 1px solid #e0e0e0;">
+        <button class="btn" onclick="navigateImagePage('first')" style="background: var(--purple); padding: 6px 12px;">
+          ⏮️
         </button>
-        <button class="btn" onclick="navigateImagePage('prev')" style="background: var(--blue);">
-          ◀️<span>السابقة</span>
+        <button class="btn" onclick="navigateImagePage('prev')" style="background: var(--blue); padding: 6px 12px;">
+          ◀️
         </button>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <span style="font-weight: 600;">الصفحة:</span>
+        <div style="display: flex; gap: 6px; align-items: center;">
           <input 
             type="number" 
             id="page-input" 
@@ -356,45 +368,40 @@ function openImageNavigator() {
             max="${totalPages}" 
             value="1"
             onkeypress="if(event.key==='Enter') navigateImagePage('jump')"
-            style="width: 70px; padding: 8px; border: 2px solid var(--border-strong); border-radius: 8px; text-align: center; font-size: 16px; font-weight: 600;"
+            style="width: 60px; padding: 6px; border: 2px solid var(--border-strong); border-radius: 6px; text-align: center; font-size: 14px; font-weight: 600;"
           >
-          <span style="color: var(--text-muted);">/ ${totalPages}</span>
+          <span style="color: var(--text-muted); font-size: 14px;">/ ${totalPages}</span>
         </div>
-        <button class="btn" onclick="navigateImagePage('next')" style="background: var(--blue);">
-          <span>التالية</span>▶️
+        <button class="btn" onclick="navigateImagePage('next')" style="background: var(--blue); padding: 6px 12px;">
+          ▶️
         </button>
-        <button class="btn" onclick="navigateImagePage('last')" style="background: var(--purple);">
-          <span>الأخيرة</span>⏭️
+        <button class="btn" onclick="navigateImagePage('last')" style="background: var(--purple); padding: 6px 12px;">
+          ⏭️
         </button>
       </div>
       
-      <div id="image-container" style="text-align: center; background: #f5f5f5; border-radius: 12px; padding: 20px; min-height: 400px;">
+      <div id="image-container" style="flex: 1; text-align: center; background: #f5f5f5; padding: 12px; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <img 
           id="diagnostic-image" 
           src="./بور-التشخيص-كامل.jpg/بور-التشخيص-كامل.jpg/1.jpg" 
           alt="صورة التشخيص"
-          style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"
+          style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
         >
-        <div style="display: none; padding: 40px; color: var(--critical); font-size: 16px;">
+        <div style="display: none; padding: 20px; color: var(--critical); font-size: 14px;">
           ❌ لا يمكن تحميل الصورة
-        </div>
-        <div style="margin-top: 12px; font-size: 18px; font-weight: 600; color: var(--blue);">
-          الصفحة <span id="current-page-display">1</span> من ${totalPages}
         </div>
       </div>
       
-      <div style="margin-top: 16px; padding: 12px; background: var(--blue-50); border-radius: 8px; text-align: center;">
-        <p style="margin: 0; font-size: 13px; color: var(--blue);">
-          💡 <strong>نصيحة:</strong> اكتب رقم الصفحة مباشرة واضغط Enter للانتقال السريع
-        </p>
+      <div style="padding: 8px; background: var(--blue-50); text-align: center; border-top: 1px solid #e0e0e0;">
+        <div style="font-size: 14px; font-weight: 600; color: var(--blue);">
+          الصفحة <span id="current-page-display">1</span> من ${totalPages}
+        </div>
       </div>
     </div>
   `;
   
-  openModal(navigatorHTML, { lg: true });
-  
-  // Store current page in window for access by navigation buttons
+  container.insertAdjacentHTML('afterbegin', viewerHTML);
   window.currentDiagnosticPage = 1;
 }
 
@@ -432,13 +439,11 @@ function navigateImagePage(action) {
   if (input) input.value = newPage;
   if (display) display.textContent = newPage;
   
-  // Update image source - try both .jpg and .png extensions
+  // Update image source
   if (img) {
-    // Reset error state
     img.style.display = 'block';
-    img.nextElementSibling.style.display = 'none';
+    if (img.nextElementSibling) img.nextElementSibling.style.display = 'none';
     
-    // Determine file extension (1-93 are .jpg, 94-112 are .png based on the git output)
     const ext = newPage <= 93 ? 'jpg' : 'png';
     img.src = `./بور-التشخيص-كامل.jpg/بور-التشخيص-كامل.jpg/${newPage}.${ext}`;
   }
@@ -6062,8 +6067,8 @@ function renderSpeechTestForm(st, data, viewOnly) {
       </div>
       
       <div style="text-align: center; margin-bottom: 16px;">
-        <button type="button" class="btn" onclick="openImageNavigator()" style="background: var(--blue); color: white;">
-          📚<span>إختبار النطق المصور (1-112)</span>
+        <button type="button" class="btn lg" onclick="openImageNavigator()" style="background: var(--blue); color: white; padding: 12px 24px; font-size: 16px; font-weight: 600;">
+          📚 إختبار النطق المصور (1-112)
         </button>
       </div>
       
