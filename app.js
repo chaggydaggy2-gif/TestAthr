@@ -336,7 +336,7 @@ function openImageNavigator() {
   
   const navigatorHTML = `
     <div class="modal-head">
-      <h2>📚 بور التشخيص الكامل</h2>
+      <h2>📚 إختبار النطق المصور</h2>
       <button class="x" data-action="close-modal">${I.close}</button>
     </div>
     <div style="padding: 20px;">
@@ -4749,37 +4749,26 @@ document.addEventListener('submit', (e) => {
       const results = {};
       const remarks = {};
       const weakPoints = [];
-      let totalChecks = 0;
-      let correctChecks = 0;
       
       SPEECH_TEST_SOUNDS.forEach(s => {
-        const first = fd.get(`s_${s.id}_first`) === 'on';
-        const middle = fd.get(`s_${s.id}_middle`) === 'on';
-        const last = fd.get(`s_${s.id}_last`) === 'on';
-        const moving = fd.get(`s_${s.id}_moving`) === 'on';
+        const first = fd.get(`s_${s.id}_first`) || '';
+        const middle = fd.get(`s_${s.id}_middle`) || '';
+        const last = fd.get(`s_${s.id}_last`) || '';
+        const moving = fd.get(`s_${s.id}_moving`) || '';
         const remark = fd.get(`remark_${s.id}`) || '';
         
         results[s.id] = { first, middle, last, moving };
         if (remark) remarks[s.id] = remark;
         
-        // Count total checks and correct (checked) ones
-        totalChecks += 4;
-        if (first) correctChecks++;
-        if (middle) correctChecks++;
-        if (last) correctChecks++;
-        if (moving) correctChecks++;
-        
-        // If any position is unchecked, it's a weak point
-        if (!first || !middle || !last || !moving) {
+        // If any position has content indicating an issue, it's a weak point
+        if (first || middle || last || moving) {
           weakPoints.push(`${s.sound} (${s.words.split(' - ')[0]})`);
         }
       });
       
-      const pct = totalChecks ? Math.round((correctChecks / totalChecks) * 100) : 0;
       st.forms.speechTest = {
         completed: true,
         date: today,
-        score: pct,
         weakPoints,
         results,
         remarks,
@@ -6074,7 +6063,7 @@ function renderSpeechTestForm(st, data, viewOnly) {
       
       <div style="text-align: center; margin-bottom: 16px;">
         <button type="button" class="btn" onclick="openImageNavigator()" style="background: var(--blue); color: white;">
-          📚<span>عرض بور التشخيص (1-112)</span>
+          📚<span>إختبار النطق المصور (1-112)</span>
         </button>
       </div>
       
@@ -6087,7 +6076,7 @@ function renderSpeechTestForm(st, data, viewOnly) {
             <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">أول</th>
             <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">وسط</th>
             <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">أخر</th>
-            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">محرك</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">مجرد</th>
             <th style="padding: 8px; border: 1px solid #ddd; text-align: center; min-width: 150px;">ملاحظات</th>
           </tr>
         </thead>
@@ -6099,21 +6088,21 @@ function renderSpeechTestForm(st, data, viewOnly) {
               <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${arNum(s.num)}</td>
               <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; font-size: 16px;">${s.sound}</td>
               <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${s.words}</td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">
-                <input type="checkbox" name="s_${s.id}_first" ${r.first ? 'checked' : ''} ${viewOnly ? 'disabled' : ''} 
-                       style="width: 16px; height: 16px; cursor: pointer;">
+              <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">
+                <input type="text" name="s_${s.id}_first" value="${esc(r.first || '')}" ${viewOnly ? 'disabled' : ''} 
+                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center;" placeholder="">
               </td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">
-                <input type="checkbox" name="s_${s.id}_middle" ${r.middle ? 'checked' : ''} ${viewOnly ? 'disabled' : ''} 
-                       style="width: 16px; height: 16px; cursor: pointer;">
+              <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">
+                <input type="text" name="s_${s.id}_middle" value="${esc(r.middle || '')}" ${viewOnly ? 'disabled' : ''} 
+                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center;" placeholder="">
               </td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">
-                <input type="checkbox" name="s_${s.id}_last" ${r.last ? 'checked' : ''} ${viewOnly ? 'disabled' : ''} 
-                       style="width: 16px; height: 16px; cursor: pointer;">
+              <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">
+                <input type="text" name="s_${s.id}_last" value="${esc(r.last || '')}" ${viewOnly ? 'disabled' : ''} 
+                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center;" placeholder="">
               </td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">
-                <input type="checkbox" name="s_${s.id}_moving" ${r.moving ? 'checked' : ''} ${viewOnly ? 'disabled' : ''} 
-                       style="width: 16px; height: 16px; cursor: pointer;">
+              <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">
+                <input type="text" name="s_${s.id}_moving" value="${esc(r.moving || '')}" ${viewOnly ? 'disabled' : ''} 
+                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center;" placeholder="">
               </td>
               <td style="padding: 4px; border: 1px solid #ddd;">
                 <input type="text" name="remark_${s.id}" value="${esc(remarks[s.id] || '')}" ${viewOnly ? 'disabled' : ''}
