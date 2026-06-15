@@ -354,7 +354,10 @@ function openImageNavigator() {
   };
   
   const viewerHTML = `
-    <div id="side-image-viewer" style="position: fixed; left: 20px; top: 80px; width: 400px; max-height: calc(100vh - 100px); background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 9999; overflow: hidden; display: flex; flex-direction: column; transition: all 0.3s ease;">
+    <div id="side-image-viewer" style="position: fixed; left: 20px; top: 80px; width: 400px; max-height: calc(100vh - 100px); background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 9999; overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.2s ease;">
+      <!-- Resize handle -->
+      <div id="resize-handle" style="position: absolute; right: 0; top: 0; bottom: 0; width: 8px; cursor: ew-resize; z-index: 10; background: transparent; transition: background 0.2s;" onmouseover="this.style.background='rgba(var(--blue-rgb, 59, 130, 246), 0.3)'" onmouseout="this.style.background='transparent'"></div>
+      
       <div style="background: var(--blue); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0; font-size: 16px; font-weight: 600;">📚 إختبار النطق المصور</h3>
         <button onclick="openImageNavigator()" style="background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">×</button>
@@ -394,8 +397,6 @@ function openImageNavigator() {
           <button class="btn soft" onclick="adjustImageZoom('reset')" title="إعادة ضبط" style="padding: 4px 8px; font-size: 12px;">100%</button>
         </div>
         <div style="display: flex; gap: 4px;">
-          <button class="btn soft" onclick="adjustViewerWidth('wider')" title="توسيع" style="padding: 4px 8px; font-size: 14px;">↔️</button>
-          <button class="btn soft" onclick="adjustViewerWidth('narrower')" title="تضييق" style="padding: 4px 8px; font-size: 14px;">→←</button>
           <button class="btn soft" onclick="toggleViewerPosition()" title="تغيير الجانب" style="padding: 4px 8px; font-size: 14px;">↔</button>
         </div>
       </div>
@@ -423,6 +424,52 @@ function openImageNavigator() {
   
   container.insertAdjacentHTML('afterbegin', viewerHTML);
   window.currentDiagnosticPage = 1;
+  
+  // Setup resize functionality
+  setupResizeHandle();
+}
+
+function setupResizeHandle() {
+  const handle = document.getElementById('resize-handle');
+  const viewer = document.getElementById('side-image-viewer');
+  if (!handle || !viewer) return;
+  
+  let isResizing = false;
+  let startX = 0;
+  let startWidth = 0;
+  
+  handle.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    startX = e.clientX;
+    startWidth = viewer.offsetWidth;
+    
+    // Add visual feedback
+    viewer.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.4)';
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    
+    e.preventDefault();
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    
+    const settings = window.imageViewerSettings;
+    const diff = settings.position === 'left' ? (e.clientX - startX) : (startX - e.clientX);
+    const newWidth = Math.max(250, Math.min(1000, startWidth + diff));
+    
+    viewer.style.width = newWidth + 'px';
+    window.imageViewerSettings.width = newWidth;
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (isResizing) {
+      isResizing = false;
+      viewer.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
 }
 
 function adjustImageZoom(action) {
@@ -442,24 +489,10 @@ function adjustImageZoom(action) {
   img.style.transform = `scale(${settings.zoom / 100})`;
 }
 
-function adjustViewerWidth(action) {
-  const viewer = document.getElementById('side-image-viewer');
-  if (!viewer) return;
-  
-  const settings = window.imageViewerSettings;
-  
-  if (action === 'wider') {
-    settings.width = Math.min(800, settings.width + 100);
-  } else if (action === 'narrower') {
-    settings.width = Math.max(300, settings.width - 100);
-  }
-  
-  viewer.style.width = settings.width + 'px';
-}
-
 function toggleViewerPosition() {
   const viewer = document.getElementById('side-image-viewer');
-  if (!viewer) return;
+  const handle = document.getElementById('resize-handle');
+  if (!viewer || !handle) return;
   
   const settings = window.imageViewerSettings;
   settings.position = settings.position === 'left' ? 'right' : 'left';
@@ -467,9 +500,13 @@ function toggleViewerPosition() {
   if (settings.position === 'right') {
     viewer.style.left = 'auto';
     viewer.style.right = '20px';
+    handle.style.right = 'auto';
+    handle.style.left = '0';
   } else {
     viewer.style.right = 'auto';
     viewer.style.left = '20px';
+    handle.style.left = 'auto';
+    handle.style.right = '0';
   }
 }
 
