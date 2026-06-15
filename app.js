@@ -383,7 +383,7 @@ function openImageNavigator() {
       <div id="image-container" style="flex: 1; text-align: center; background: #f5f5f5; padding: 12px; overflow: auto; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <img 
           id="diagnostic-image" 
-          src="./بور-التشخيص-كامل.jpg/بور-التشخيص-كامل.jpg/1.jpg" 
+          src="./بور-التشخيص-كامل.jpg/1.jpg" 
           alt="صورة التشخيص"
           style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
@@ -445,7 +445,7 @@ function navigateImagePage(action) {
     if (img.nextElementSibling) img.nextElementSibling.style.display = 'none';
     
     const ext = newPage <= 93 ? 'jpg' : 'png';
-    img.src = `./بور-التشخيص-كامل.jpg/بور-التشخيص-كامل.jpg/${newPage}.${ext}`;
+    img.src = `./بور-التشخيص-كامل.jpg/${newPage}.${ext}`;
   }
 }
 
