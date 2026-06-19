@@ -5224,6 +5224,8 @@ document.addEventListener('submit', (e) => {
     if (!sid || !day) { toast('أكملي البيانات', 'warn'); return; }
     const time = fd.get('time');
     const duration = Number(fd.get('duration')) || 30;
+    const goalType = fd.get('goalType') || 'cognitive';
+    
     // Check time conflicts across this teacher's students for the same day
     const teacherId = STATE.user.id;
     const myStudents = STATE.data.students.filter(s => s.teacher_id === teacherId); // Fixed: use teacher_id
@@ -5243,7 +5245,8 @@ document.addEventListener('submit', (e) => {
     if (st) {
       const newSlot = {
         day, time, duration,
-        room: (fd.get('room') || 'غرفة ١').trim()
+        room: (fd.get('room') || 'غرفة ١').trim(),
+        goalType
       };
       
       // Update schedule array
@@ -5694,6 +5697,25 @@ function openAddSlotModal(presetDay) {
           ${myStudents.map(s => `<option value="${s.id}">${esc(s.name)} — ${esc(s.grade)}</option>`).join('')}
         </select>
       </div>
+      
+      <div class="field">
+        <label>نوع الهدف</label>
+        <div class="row wrap" id="goal-type-row">
+          <label class="chip active" style="cursor:pointer">
+            <input type="radio" name="goalType" value="cognitive" checked hidden>
+            <span>إدراكي</span>
+          </label>
+          <label class="chip" style="cursor:pointer">
+            <input type="radio" name="goalType" value="receptive-expressive" hidden>
+            <span>استقبالي وتعبيري</span>
+          </label>
+          <label class="chip" style="cursor:pointer">
+            <input type="radio" name="goalType" value="articulation" hidden>
+            <span>النطق</span>
+          </label>
+        </div>
+      </div>
+      
       <div class="field">
         <label>اليوم</label>
         <div class="row wrap" id="slot-day-row">
@@ -5722,6 +5744,13 @@ function openAddSlotModal(presetDay) {
       <button type="submit" class="btn lg block">${I.check}<span>حفظ في الجدول</span></button>
     </form>
   `);
+
+  document.getElementById('goal-type-row')?.querySelectorAll('label').forEach(lbl => {
+    lbl.addEventListener('click', () => {
+      lbl.parentElement.querySelectorAll('label').forEach(x => x.classList.remove('active'));
+      lbl.classList.add('active');
+    });
+  });
 
   document.getElementById('slot-day-row')?.querySelectorAll('label').forEach(lbl => {
     lbl.addEventListener('click', () => {
