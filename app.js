@@ -34,18 +34,23 @@ const I = (() => {
     gift:    s('<rect x="3" y="8" width="18" height="14" rx="2"/><path d="M3 12h18M12 8v14"/><path d="M12 8c0-3-2-5-4-5s-3 2-2 4c1 1 4 1 6 1z"/><path d="M12 8c0-3 2-5 4-5s3 2 2 4c-1 1-4 1-6 1z"/>'),
     target:  s('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>'),
     sparkle: s('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/>'),
-    mic:     s('<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/>'),
+    mic:     s('<path d="M9 2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/>'),
     eye:     s('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
     heart:   s('<path d="M21 8.5a5.5 5.5 0 0 0-9-4 5.5 5.5 0 0 0-9 4c0 6.5 9 12 9 12s9-5.5 9-12z"/>'),
     download:s('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>'),
     menu:    s('<path d="M3 6h18M3 12h18M3 18h18"/>'),
     logout:  s('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>'),
-    flag:    s('<path d="M4 21V4h13l-2 5 2 5H4"/v8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
+    flag:    s('<path d="M4 21V4h13l-2 5 2 5H4"/>'),
+    user:    s('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
     building:s('<path d="M3 21h18"/><path d="M5 21V7l8-4 8 4v14"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01M14 9v.01M14 12v.01M14 15v.01M14 18v.01"/>'),
     wrench:  s('<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>'),
     chat:    s('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
     box:     s('<path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>'),
     sliders: s('<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>'),
+    edit:    s('<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>'),
+    trash:   s('<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'),
+    close:   s('<path d="M18 6L6 18M6 6l12 12"/>'),
+    chevron: s('<path d="M9 18l6-6-6-6"/>'),
   };
 })();
 
@@ -6213,7 +6218,6 @@ function renderSpeechTestForm(st, data, viewOnly) {
         <h3 style="text-align: center; margin: 0 0 8px 0;">اختبار مخارج الأصوات العربية المطور</h3>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 14px;">
           <div><strong>الاسم:</strong> ${esc(st.name)}</div>
-          <div><strong>تاريخ الميلاد:</strong> ${st.birthdate || '___________'}</div>
           <div><strong>تاريخ الاختبار:</strong> ${data.date || new Date().toISOString().slice(0,10)}</div>
           <div><strong>الصف:</strong> ${esc(st.grade || '_______')}</div>
         </div>
