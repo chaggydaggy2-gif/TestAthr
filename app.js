@@ -4899,19 +4899,24 @@ document.addEventListener('submit', (e) => {
         const moving = fd.get(`s_${s.id}_moving`) || '';
         const remark = fd.get(`remark_${s.id}`) || '';
         
-        results[s.id] = { first, middle, last, moving };
+        const firstWrong = fd.get(`w_${s.id}_first`) === 'on';
+        const middleWrong = fd.get(`w_${s.id}_middle`) === 'on';
+        const lastWrong = fd.get(`w_${s.id}_last`) === 'on';
+        const movingWrong = fd.get(`w_${s.id}_moving`) === 'on';
+        
+        results[s.id] = { first, middle, last, moving, firstWrong, middleWrong, lastWrong, movingWrong };
         if (remark) remarks[s.id] = remark;
         
         // If ANY position is marked as 'wrong', add to wrongSounds for goal generation
-        if (first === 'wrong' || middle === 'wrong' || last === 'wrong' || moving === 'wrong') {
+        if (firstWrong || middleWrong || lastWrong || movingWrong) {
           wrongSounds.push({
             id: s.id,
             sound: s.sound,
             positions: {
-              first: first === 'wrong',
-              middle: middle === 'wrong',
-              last: last === 'wrong',
-              moving: moving === 'wrong'
+              first: firstWrong,
+              middle: middleWrong,
+              last: lastWrong,
+              moving: movingWrong
             }
           });
         }
@@ -6241,38 +6246,63 @@ function renderSpeechTestForm(st, data, viewOnly) {
               <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${arNum(s.num)}</td>
               <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; font-size: 16px;">${s.sound}</td>
               <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${s.words}</td>
-              <td style="padding: 2px; border: 1px solid #ddd; text-align: center; background: ${r.first === 'wrong' ? '#ffebee' : 'white'};">
-                <select name="s_${s.id}_first" ${viewOnly ? 'disabled' : ''} 
-                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center; background: ${r.first === 'wrong' ? '#ffcdd2' : 'white'}; color: ${r.first === 'wrong' ? '#c62828' : 'inherit'}; font-weight: ${r.first === 'wrong' ? 'bold' : 'normal'};">
-                  <option value="">—</option>
-                  <option value="correct" ${r.first === 'correct' ? 'selected' : ''}>✓ صح</option>
-                  <option value="wrong" ${r.first === 'wrong' ? 'selected' : ''}>✗ خطأ</option>
-                </select>
+              
+              <!-- First position -->
+              <td style="padding: 2px; border: 1px solid #ddd;">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="text" name="s_${s.id}_first" value="${esc(r.first || '')}" ${viewOnly ? 'disabled' : ''}
+                         style="flex: 1; border: 1px solid #ddd; padding: 4px; font-size: 14px; text-align: center; background: white; color: ${r.firstWrong ? '#c62828' : 'inherit'}; font-weight: ${r.firstWrong ? 'bold' : 'normal'};">
+                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                    <input type="checkbox" name="w_${s.id}_first" ${r.firstWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
+                           onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
+                           style="margin: 0; cursor: pointer; width: 16px; height: 16px;">
+                    <span style="font-size: 16px; color: #c62828; margin-left: 2px;">✗</span>
+                  </label>
+                </div>
               </td>
-              <td style="padding: 2px; border: 1px solid #ddd; text-align: center; background: ${r.middle === 'wrong' ? '#ffebee' : 'white'};">
-                <select name="s_${s.id}_middle" ${viewOnly ? 'disabled' : ''} 
-                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center; background: ${r.middle === 'wrong' ? '#ffcdd2' : 'white'}; color: ${r.middle === 'wrong' ? '#c62828' : 'inherit'}; font-weight: ${r.middle === 'wrong' ? 'bold' : 'normal'};">
-                  <option value="">—</option>
-                  <option value="correct" ${r.middle === 'correct' ? 'selected' : ''}>✓ صح</option>
-                  <option value="wrong" ${r.middle === 'wrong' ? 'selected' : ''}>✗ خطأ</option>
-                </select>
+              
+              <!-- Middle position -->
+              <td style="padding: 2px; border: 1px solid #ddd;">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="text" name="s_${s.id}_middle" value="${esc(r.middle || '')}" ${viewOnly ? 'disabled' : ''}
+                         style="flex: 1; border: 1px solid #ddd; padding: 4px; font-size: 14px; text-align: center; background: white; color: ${r.middleWrong ? '#c62828' : 'inherit'}; font-weight: ${r.middleWrong ? 'bold' : 'normal'};">
+                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                    <input type="checkbox" name="w_${s.id}_middle" ${r.middleWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
+                           onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
+                           style="margin: 0; cursor: pointer; width: 16px; height: 16px;">
+                    <span style="font-size: 16px; color: #c62828; margin-left: 2px;">✗</span>
+                  </label>
+                </div>
               </td>
-              <td style="padding: 2px; border: 1px solid #ddd; text-align: center; background: ${r.last === 'wrong' ? '#ffebee' : 'white'};">
-                <select name="s_${s.id}_last" ${viewOnly ? 'disabled' : ''} 
-                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center; background: ${r.last === 'wrong' ? '#ffcdd2' : 'white'}; color: ${r.last === 'wrong' ? '#c62828' : 'inherit'}; font-weight: ${r.last === 'wrong' ? 'bold' : 'normal'};">
-                  <option value="">—</option>
-                  <option value="correct" ${r.last === 'correct' ? 'selected' : ''}>✓ صح</option>
-                  <option value="wrong" ${r.last === 'wrong' ? 'selected' : ''}>✗ خطأ</option>
-                </select>
+              
+              <!-- Last position -->
+              <td style="padding: 2px; border: 1px solid #ddd;">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="text" name="s_${s.id}_last" value="${esc(r.last || '')}" ${viewOnly ? 'disabled' : ''}
+                         style="flex: 1; border: 1px solid #ddd; padding: 4px; font-size: 14px; text-align: center; background: white; color: ${r.lastWrong ? '#c62828' : 'inherit'}; font-weight: ${r.lastWrong ? 'bold' : 'normal'};">
+                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                    <input type="checkbox" name="w_${s.id}_last" ${r.lastWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
+                           onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
+                           style="margin: 0; cursor: pointer; width: 16px; height: 16px;">
+                    <span style="font-size: 16px; color: #c62828; margin-left: 2px;">✗</span>
+                  </label>
+                </div>
               </td>
-              <td style="padding: 2px; border: 1px solid #ddd; text-align: center; background: ${r.moving === 'wrong' ? '#ffebee' : 'white'};">
-                <select name="s_${s.id}_moving" ${viewOnly ? 'disabled' : ''} 
-                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center; background: ${r.moving === 'wrong' ? '#ffcdd2' : 'white'}; color: ${r.moving === 'wrong' ? '#c62828' : 'inherit'}; font-weight: ${r.moving === 'wrong' ? 'bold' : 'normal'};">
-                  <option value="">—</option>
-                  <option value="correct" ${r.moving === 'correct' ? 'selected' : ''}>✓ صح</option>
-                  <option value="wrong" ${r.moving === 'wrong' ? 'selected' : ''}>✗ خطأ</option>
-                </select>
+              
+              <!-- Moving position -->
+              <td style="padding: 2px; border: 1px solid #ddd;">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="text" name="s_${s.id}_moving" value="${esc(r.moving || '')}" ${viewOnly ? 'disabled' : ''}
+                         style="flex: 1; border: 1px solid #ddd; padding: 4px; font-size: 14px; text-align: center; background: white; color: ${r.movingWrong ? '#c62828' : 'inherit'}; font-weight: ${r.movingWrong ? 'bold' : 'normal'};">
+                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                    <input type="checkbox" name="w_${s.id}_moving" ${r.movingWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
+                           onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
+                           style="margin: 0; cursor: pointer; width: 16px; height: 16px;">
+                    <span style="font-size: 16px; color: #c62828; margin-left: 2px;">✗</span>
+                  </label>
+                </div>
               </td>
+              
               <td style="padding: 4px; border: 1px solid #ddd;">
                 <input type="text" name="remark_${s.id}" value="${esc(remarks[s.id] || '')}" ${viewOnly ? 'disabled' : ''}
                        style="width: 100%; border: none; padding: 4px; font-size: 12px;" placeholder="ملاحظات">
