@@ -4890,7 +4890,7 @@ document.addEventListener('submit', (e) => {
     } else if (fkey === 'speechTest') {
       const results = {};
       const remarks = {};
-      const weakPoints = [];
+      const wrongSounds = [];
       
       SPEECH_TEST_SOUNDS.forEach(s => {
         const first = fd.get(`s_${s.id}_first`) || '';
@@ -4902,19 +4902,30 @@ document.addEventListener('submit', (e) => {
         results[s.id] = { first, middle, last, moving };
         if (remark) remarks[s.id] = remark;
         
-        // If any position has content indicating an issue, it's a weak point
-        if (first || middle || last || moving) {
-          weakPoints.push(`${s.sound} (${s.words.split(' - ')[0]})`);
+        // If ANY position is marked as 'wrong', add to wrongSounds for goal generation
+        if (first === 'wrong' || middle === 'wrong' || last === 'wrong' || moving === 'wrong') {
+          wrongSounds.push({
+            id: s.id,
+            sound: s.sound,
+            positions: {
+              first: first === 'wrong',
+              middle: middle === 'wrong',
+              last: last === 'wrong',
+              moving: moving === 'wrong'
+            }
+          });
         }
       });
       
       st.forms.speechTest = {
         completed: true,
         date: today,
-        weakPoints,
+        wrongSounds,
         results,
         remarks,
       };
+      
+      console.log('✅ speechTest saved with wrong sounds:', wrongSounds.length, wrongSounds);
     } else if (fkey === 'auditoryMemoryTest') {
       const tasks = {}; let score = 0, totalMax = 0;
       AUDITORY_MEMORY_TASKS.forEach(task => {
@@ -6230,21 +6241,37 @@ function renderSpeechTestForm(st, data, viewOnly) {
               <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${arNum(s.num)}</td>
               <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; font-size: 16px;">${s.sound}</td>
               <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${s.words}</td>
-              <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">
-                <input type="text" name="s_${s.id}_first" value="${esc(r.first || '')}" ${viewOnly ? 'disabled' : ''} 
-                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center;" placeholder="">
+              <td style="padding: 2px; border: 1px solid #ddd; text-align: center; background: ${r.first === 'wrong' ? '#ffebee' : 'white'};">
+                <select name="s_${s.id}_first" ${viewOnly ? 'disabled' : ''} 
+                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center; background: ${r.first === 'wrong' ? '#ffcdd2' : 'white'}; color: ${r.first === 'wrong' ? '#c62828' : 'inherit'}; font-weight: ${r.first === 'wrong' ? 'bold' : 'normal'};">
+                  <option value="">—</option>
+                  <option value="correct" ${r.first === 'correct' ? 'selected' : ''}>✓ صح</option>
+                  <option value="wrong" ${r.first === 'wrong' ? 'selected' : ''}>✗ خطأ</option>
+                </select>
               </td>
-              <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">
-                <input type="text" name="s_${s.id}_middle" value="${esc(r.middle || '')}" ${viewOnly ? 'disabled' : ''} 
-                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center;" placeholder="">
+              <td style="padding: 2px; border: 1px solid #ddd; text-align: center; background: ${r.middle === 'wrong' ? '#ffebee' : 'white'};">
+                <select name="s_${s.id}_middle" ${viewOnly ? 'disabled' : ''} 
+                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center; background: ${r.middle === 'wrong' ? '#ffcdd2' : 'white'}; color: ${r.middle === 'wrong' ? '#c62828' : 'inherit'}; font-weight: ${r.middle === 'wrong' ? 'bold' : 'normal'};">
+                  <option value="">—</option>
+                  <option value="correct" ${r.middle === 'correct' ? 'selected' : ''}>✓ صح</option>
+                  <option value="wrong" ${r.middle === 'wrong' ? 'selected' : ''}>✗ خطأ</option>
+                </select>
               </td>
-              <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">
-                <input type="text" name="s_${s.id}_last" value="${esc(r.last || '')}" ${viewOnly ? 'disabled' : ''} 
-                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center;" placeholder="">
+              <td style="padding: 2px; border: 1px solid #ddd; text-align: center; background: ${r.last === 'wrong' ? '#ffebee' : 'white'};">
+                <select name="s_${s.id}_last" ${viewOnly ? 'disabled' : ''} 
+                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center; background: ${r.last === 'wrong' ? '#ffcdd2' : 'white'}; color: ${r.last === 'wrong' ? '#c62828' : 'inherit'}; font-weight: ${r.last === 'wrong' ? 'bold' : 'normal'};">
+                  <option value="">—</option>
+                  <option value="correct" ${r.last === 'correct' ? 'selected' : ''}>✓ صح</option>
+                  <option value="wrong" ${r.last === 'wrong' ? 'selected' : ''}>✗ خطأ</option>
+                </select>
               </td>
-              <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">
-                <input type="text" name="s_${s.id}_moving" value="${esc(r.moving || '')}" ${viewOnly ? 'disabled' : ''} 
-                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center;" placeholder="">
+              <td style="padding: 2px; border: 1px solid #ddd; text-align: center; background: ${r.moving === 'wrong' ? '#ffebee' : 'white'};">
+                <select name="s_${s.id}_moving" ${viewOnly ? 'disabled' : ''} 
+                       style="width: 100%; border: none; padding: 4px; font-size: 12px; text-align: center; background: ${r.moving === 'wrong' ? '#ffcdd2' : 'white'}; color: ${r.moving === 'wrong' ? '#c62828' : 'inherit'}; font-weight: ${r.moving === 'wrong' ? 'bold' : 'normal'};">
+                  <option value="">—</option>
+                  <option value="correct" ${r.moving === 'correct' ? 'selected' : ''}>✓ صح</option>
+                  <option value="wrong" ${r.moving === 'wrong' ? 'selected' : ''}>✗ خطأ</option>
+                </select>
               </td>
               <td style="padding: 4px; border: 1px solid #ddd;">
                 <input type="text" name="remark_${s.id}" value="${esc(remarks[s.id] || '')}" ${viewOnly ? 'disabled' : ''}
@@ -6679,6 +6706,24 @@ function generatePlanFromAssessment(student) {
       console.log('📝 Generated auditory goals:', auditoryGoals.length, auditoryGoals);
       groups.push(...auditoryGoals);
     }
+  }
+
+  // SPEECH TEST: Generate goals for sounds marked as wrong
+  const speechData = student.forms?.speechTest;
+  const wrongSounds = speechData?.wrongSounds || [];
+  
+  if (wrongSounds.length) {
+    console.log('🔍 Speech test wrong sounds:', wrongSounds.length, wrongSounds.map(w => w.sound));
+    
+    // Generate one goal per wrong sound: "أن تنطق الطالبة حرف (X) بطريقة صحيحة"
+    wrongSounds.forEach(ws => {
+      groups.push({
+        long: `أن تنطق الطالبة حرف (${ws.sound}) بطريقة صحيحة`,
+        shorts: [`أن تنطق الطالبة حرف (${ws.sound}) بطريقة صحيحة بنسبة ٨٠٪`]
+      });
+    });
+    
+    console.log('📝 Generated speech test goals:', wrongSounds.length);
   }
 
   console.log('✅ FINAL GROUPS:', groups.length, 'total goals');
