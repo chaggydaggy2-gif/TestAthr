@@ -6225,17 +6225,17 @@ function renderSpeechTestForm(st, data, viewOnly) {
         </button>
       </div>
       
-      <table class="speech-test-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+      <table class="speech-test-table" style="width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed;">
         <thead>
           <tr style="background: #333; color: white;">
-            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">الرقم</th>
-            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">الصوت</th>
-            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">المفــــــــــردات</th>
-            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">أول</th>
-            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">وسط</th>
-            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">أخر</th>
-            <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">مجرد</th>
-            <th style="padding: 8px; border: 1px solid #ddd; text-align: center; min-width: 150px;">ملاحظات</th>
+            <th style="padding: 6px 2px; border: 1px solid #ddd; text-align: center; width: 30px;">الرقم</th>
+            <th style="padding: 6px 4px; border: 1px solid #ddd; text-align: center; width: 40px;">الصوت</th>
+            <th style="padding: 6px 4px; border: 1px solid #ddd; text-align: center;">المفــــــــــردات</th>
+            <th style="padding: 6px 2px; border: 1px solid #ddd; text-align: center; width: 70px;">أول</th>
+            <th style="padding: 6px 2px; border: 1px solid #ddd; text-align: center; width: 70px;">وسط</th>
+            <th style="padding: 6px 2px; border: 1px solid #ddd; text-align: center; width: 70px;">أخر</th>
+            <th style="padding: 6px 2px; border: 1px solid #ddd; text-align: center; width: 70px;">مجرد</th>
+            <th style="padding: 6px 4px; border: 1px solid #ddd; text-align: center; min-width: 100px;">ملاحظات</th>
           </tr>
         </thead>
         <tbody>
@@ -6243,69 +6243,69 @@ function renderSpeechTestForm(st, data, viewOnly) {
             const r = results[s.id] || {};
             return `
             <tr>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${arNum(s.num)}</td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; font-size: 16px;">${s.sound}</td>
-              <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${s.words}</td>
+              <td style="padding: 4px 2px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${arNum(s.num)}</td>
+              <td style="padding: 4px 2px; border: 1px solid #ddd; text-align: center; font-weight: bold; font-size: 15px;">${s.sound}</td>
+              <td style="padding: 4px 6px; border: 1px solid #ddd; text-align: right; font-size: 11px;">${s.words}</td>
               
               <!-- First position -->
-              <td style="padding: 4px; border: 1px solid #ddd;">
-                <div style="display: flex; align-items: center; gap: 4px; justify-content: center;">
+              <td style="padding: 2px; border: 1px solid #ddd;">
+                <div style="display: flex; align-items: center; gap: 2px; justify-content: center;">
                   <input type="text" name="s_${s.id}_first" value="${esc(r.first || '')}" ${viewOnly ? 'disabled' : ''}
-                         style="width: 50px; border: 1px solid #ddd; padding: 3px; font-size: 13px; text-align: center; background: white; color: ${r.firstWrong ? '#c62828' : 'inherit'}; font-weight: ${r.firstWrong ? 'bold' : 'normal'};">
-                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                         style="width: 38px; border: 1px solid #ddd; padding: 2px; font-size: 12px; text-align: center; background: white; color: ${r.firstWrong ? '#c62828' : 'inherit'}; font-weight: ${r.firstWrong ? 'bold' : 'normal'};">
+                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0; flex-shrink: 0;">
                     <input type="checkbox" name="w_${s.id}_first" ${r.firstWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
                            onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
-                           style="margin: 0; cursor: pointer; width: 14px; height: 14px;">
-                    <span style="font-size: 14px; color: #c62828; margin-left: 2px;">✗</span>
+                           style="margin: 0; cursor: pointer; width: 12px; height: 12px;">
+                    <span style="font-size: 12px; color: #c62828; margin-left: 1px; line-height: 1;">✗</span>
                   </label>
                 </div>
               </td>
               
               <!-- Middle position -->
-              <td style="padding: 4px; border: 1px solid #ddd;">
-                <div style="display: flex; align-items: center; gap: 4px; justify-content: center;">
+              <td style="padding: 2px; border: 1px solid #ddd;">
+                <div style="display: flex; align-items: center; gap: 2px; justify-content: center;">
                   <input type="text" name="s_${s.id}_middle" value="${esc(r.middle || '')}" ${viewOnly ? 'disabled' : ''}
-                         style="width: 50px; border: 1px solid #ddd; padding: 3px; font-size: 13px; text-align: center; background: white; color: ${r.middleWrong ? '#c62828' : 'inherit'}; font-weight: ${r.middleWrong ? 'bold' : 'normal'};">
-                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                         style="width: 38px; border: 1px solid #ddd; padding: 2px; font-size: 12px; text-align: center; background: white; color: ${r.middleWrong ? '#c62828' : 'inherit'}; font-weight: ${r.middleWrong ? 'bold' : 'normal'};">
+                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0; flex-shrink: 0;">
                     <input type="checkbox" name="w_${s.id}_middle" ${r.middleWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
                            onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
-                           style="margin: 0; cursor: pointer; width: 14px; height: 14px;">
-                    <span style="font-size: 14px; color: #c62828; margin-left: 2px;">✗</span>
+                           style="margin: 0; cursor: pointer; width: 12px; height: 12px;">
+                    <span style="font-size: 12px; color: #c62828; margin-left: 1px; line-height: 1;">✗</span>
                   </label>
                 </div>
               </td>
               
               <!-- Last position -->
-              <td style="padding: 4px; border: 1px solid #ddd;">
-                <div style="display: flex; align-items: center; gap: 4px; justify-content: center;">
+              <td style="padding: 2px; border: 1px solid #ddd;">
+                <div style="display: flex; align-items: center; gap: 2px; justify-content: center;">
                   <input type="text" name="s_${s.id}_last" value="${esc(r.last || '')}" ${viewOnly ? 'disabled' : ''}
-                         style="width: 50px; border: 1px solid #ddd; padding: 3px; font-size: 13px; text-align: center; background: white; color: ${r.lastWrong ? '#c62828' : 'inherit'}; font-weight: ${r.lastWrong ? 'bold' : 'normal'};">
-                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                         style="width: 38px; border: 1px solid #ddd; padding: 2px; font-size: 12px; text-align: center; background: white; color: ${r.lastWrong ? '#c62828' : 'inherit'}; font-weight: ${r.lastWrong ? 'bold' : 'normal'};">
+                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0; flex-shrink: 0;">
                     <input type="checkbox" name="w_${s.id}_last" ${r.lastWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
                            onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
-                           style="margin: 0; cursor: pointer; width: 14px; height: 14px;">
-                    <span style="font-size: 14px; color: #c62828; margin-left: 2px;">✗</span>
+                           style="margin: 0; cursor: pointer; width: 12px; height: 12px;">
+                    <span style="font-size: 12px; color: #c62828; margin-left: 1px; line-height: 1;">✗</span>
                   </label>
                 </div>
               </td>
               
               <!-- Moving position -->
-              <td style="padding: 4px; border: 1px solid #ddd;">
-                <div style="display: flex; align-items: center; gap: 4px; justify-content: center;">
+              <td style="padding: 2px; border: 1px solid #ddd;">
+                <div style="display: flex; align-items: center; gap: 2px; justify-content: center;">
                   <input type="text" name="s_${s.id}_moving" value="${esc(r.moving || '')}" ${viewOnly ? 'disabled' : ''}
-                         style="width: 50px; border: 1px solid #ddd; padding: 3px; font-size: 13px; text-align: center; background: white; color: ${r.movingWrong ? '#c62828' : 'inherit'}; font-weight: ${r.movingWrong ? 'bold' : 'normal'};">
-                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0;">
+                         style="width: 38px; border: 1px solid #ddd; padding: 2px; font-size: 12px; text-align: center; background: white; color: ${r.movingWrong ? '#c62828' : 'inherit'}; font-weight: ${r.movingWrong ? 'bold' : 'normal'};">
+                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0; flex-shrink: 0;">
                     <input type="checkbox" name="w_${s.id}_moving" ${r.movingWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
                            onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
-                           style="margin: 0; cursor: pointer; width: 14px; height: 14px;">
-                    <span style="font-size: 14px; color: #c62828; margin-left: 2px;">✗</span>
+                           style="margin: 0; cursor: pointer; width: 12px; height: 12px;">
+                    <span style="font-size: 12px; color: #c62828; margin-left: 1px; line-height: 1;">✗</span>
                   </label>
                 </div>
               </td>
               
-              <td style="padding: 4px; border: 1px solid #ddd;">
+              <td style="padding: 3px; border: 1px solid #ddd;">
                 <input type="text" name="remark_${s.id}" value="${esc(remarks[s.id] || '')}" ${viewOnly ? 'disabled' : ''}
-                       style="width: 100%; border: none; padding: 4px; font-size: 12px;" placeholder="ملاحظات">
+                       style="width: 100%; border: none; padding: 2px; font-size: 11px;" placeholder="ملاحظات">
               </td>
             </tr>
           `}).join('')}
