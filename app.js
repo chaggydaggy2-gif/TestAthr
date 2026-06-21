@@ -5352,20 +5352,40 @@ document.addEventListener('submit', (e) => {
     e.preventDefault();
     const sid = fAddSess.getAttribute('data-sid');
     const fd = new FormData(fAddSess);
+    
+    // Get the 3 goal types evaluations
     const goalEvaluations = [];
-    fAddSess.querySelectorAll('.goal-eval-row').forEach(row => {
-      const goal = row.getAttribute('data-goal') || '';
-      if (!goal) return;
-      const sel = row.querySelector('.eval-chip.active');
+    
+    const cognitiveStatus = fd.get('cognitive_status');
+    const receptiveStatus = fd.get('receptive_status');
+    const articulationStatus = fd.get('articulation_status');
+    
+    if (cognitiveStatus) {
       goalEvaluations.push({
-        goal,
-        status: sel ? sel.getAttribute('data-eval-status') : 'not-mastered'
+        goal: 'هدف إدراكي',
+        status: cognitiveStatus
       });
-    });
+    }
+    
+    if (receptiveStatus) {
+      goalEvaluations.push({
+        goal: 'هدف استقبالي/تعبيري',
+        status: receptiveStatus
+      });
+    }
+    
+    if (articulationStatus) {
+      goalEvaluations.push({
+        goal: 'هدف نطق',
+        status: articulationStatus
+      });
+    }
+    
     if (!goalEvaluations.length) {
-      toast('أضيفي هدفاً واحداً على الأقل', 'warn');
+      toast('اختاري حالة واحدة على الأقل لهدف من الأهداف', 'warn');
       return;
     }
+    
     const tools = Array.from(fAddSess.querySelectorAll('.tool-chip.active')).map(el => el.getAttribute('data-tool'));
     
     const sessionData = {
@@ -7306,24 +7326,6 @@ function goalEvalRowTemplate(goalText, idx) {
 
 function openAddSessionModal(sid) {
   const st = studentBy(sid);
-  const plan = STATE.data.plans.find(p => p.studentId === sid);
-  const allGoals = getAllPlanGoals(plan);
-  
-  // Don't use default goals - if no plan, show empty
-  const goalsToUse = allGoals.length ? allGoals : [];
-  const suggested = allGoals.length ? suggestSessionGoals(st, allGoals, 3) : [];
-  const suggestedKeys = new Set(suggested.map(s => typeof s === 'string' ? s : s.goal));
-
-  // Group remaining goals by category
-  const remainingByCategory = new Map();
-  goalsToUse.forEach(g => {
-    const goalText = typeof g === 'string' ? g : g.goal;
-    if (suggestedKeys.has(goalText)) return;
-    const category = typeof g === 'object' ? g.category : 'general';
-    if (!remainingByCategory.has(category)) remainingByCategory.set(category, []);
-    remainingByCategory.get(category).push(typeof g === 'string' ? { goal: g } : g);
-  });
-
   const today = new Date().toISOString().slice(0, 10);
 
   openModal(`
@@ -7347,61 +7349,72 @@ function openAddSessionModal(sid) {
         </div>
       </div>
 
+      <!-- Three Goal Types Section -->
       <div class="field">
-        <div class="row between mb-md">
-          <label style="margin-bottom:0">
-            <span>أهداف اليوم</span>
-            ${suggested.length ? `<span class="suggest-tag">${I.sparkle} مقترحة بناءً على آخر الجلسات</span>` : ''}
-          </label>
-          <div class="row" style="gap:8px">
-            ${allGoals.length ? `
-              <button type="button" class="btn ghost sm" data-action="toggle-goal-picker">
-                ${I.plus}<span>إضافة هدف من الخطة</span>
-              </button>
-            ` : ''}
-            <button type="button" class="btn ghost sm" data-action="add-custom-goal">
-              ${I.plus}<span>إضافة هدف من الخطة</span>
-            </button>
+        <label style="margin-bottom: 16px;">أهداف الجلسة</label>
+        
+        <!-- Goal Type 1: Cognitive -->
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+          <div style="background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-weight: 600; text-align: center; font-size: 15px;">
+            هدف إدراكي
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+            <label class="chip" style="cursor: pointer; padding: 8px 16px;">
+              <input type="radio" name="cognitive_status" value="mastered" hidden>
+              <span>متقن</span>
+            </label>
+            <label class="chip" style="cursor: pointer; padding: 8px 16px;">
+              <input type="radio" name="cognitive_status" value="partial" hidden>
+              <span>جزئياً</span>
+            </label>
+            <label class="chip" style="cursor: pointer; padding: 8px 16px;">
+              <input type="radio" name="cognitive_status" value="not-mastered" hidden>
+              <span>لم يتقن</span>
+            </label>
           </div>
         </div>
 
-        <div class="stack gap-sm" id="session-goals-builder">
-          ${suggested.map((s, i) => {
-            const goalText = typeof s === 'string' ? s : s.goal;
-            return goalEvalRowTemplate(goalText, i);
-          }).join('')}
-          ${!suggested.length ? `
-            <div class="text-sm text-muted center" style="padding:24px;background:var(--canvas);border-radius:12px">
-              ${I.clipboard}
-              <div class="mt-sm">لا توجد أهداف بعد. اضغطي "إضافة هدف من الخطة" لإضافة أهداف الجلسة.</div>
-            </div>
-          ` : ''}
+        <!-- Goal Type 2: Receptive/Expressive -->
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+          <div style="background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-weight: 600; text-align: center; font-size: 15px;">
+            هدف استقبالي/تعبيري
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+            <label class="chip" style="cursor: pointer; padding: 8px 16px;">
+              <input type="radio" name="receptive_status" value="mastered" hidden>
+              <span>متقن</span>
+            </label>
+            <label class="chip" style="cursor: pointer; padding: 8px 16px;">
+              <input type="radio" name="receptive_status" value="partial" hidden>
+              <span>جزئياً</span>
+            </label>
+            <label class="chip" style="cursor: pointer; padding: 8px 16px;">
+              <input type="radio" name="receptive_status" value="not-mastered" hidden>
+              <span>لم يتقن</span>
+            </label>
+          </div>
         </div>
 
-        ${goalsToUse.length ? `
-          <div class="goal-picker hide" id="goal-picker">
-            <div class="goal-picker-head">
-              <div>
-                <div class="text-bold text-sm">اختاري من الخطة الفردية</div>
-                <div class="text-xs text-muted mt-sm">اضغطي على الهدف لإضافته للجلسة</div>
-              </div>
-              <button type="button" class="goal-picker-close" data-action="toggle-goal-picker">${I.close}</button>
-            </div>
-            ${[...remainingByCategory.entries()].map(([cat, goals]) => `
-              <div class="goal-picker-group">
-                <div class="goal-picker-cat">${esc(CATEGORY_LABELS[cat] || cat)}</div>
-                <div class="goal-picker-items">
-                  ${goals.map(g => `
-                    <button type="button" class="goal-pick-item" data-action="add-session-goal" data-goal="${esc(g.goal)}">
-                      ${esc(g.goal)}
-                    </button>
-                  `).join('')}
-                </div>
-              </div>
-            `).join('')}
-            ${!remainingByCategory.size ? `<div class="text-sm text-muted center" style="padding:14px">جميع أهداف الخطة مُضافة بالفعل.</div>` : ''}
+        <!-- Goal Type 3: Articulation -->
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+          <div style="background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-weight: 600; text-align: center; font-size: 15px;">
+            هدف نطق
           </div>
-        ` : ''}
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+            <label class="chip" style="cursor: pointer; padding: 8px 16px;">
+              <input type="radio" name="articulation_status" value="mastered" hidden>
+              <span>متقن</span>
+            </label>
+            <label class="chip" style="cursor: pointer; padding: 8px 16px;">
+              <input type="radio" name="articulation_status" value="partial" hidden>
+              <span>جزئياً</span>
+            </label>
+            <label class="chip" style="cursor: pointer; padding: 8px 16px;">
+              <input type="radio" name="articulation_status" value="not-mastered" hidden>
+              <span>لم يتقن</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div class="field">
@@ -7421,6 +7434,17 @@ function openAddSessionModal(sid) {
       <button type="submit" class="btn lg block">${I.check}<span>حفظ الجلسة</span></button>
     </form>
   `, { lg: true });
+
+  // Add click handlers for chip activation
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+      const radioName = this.querySelector('input[type=radio]').name;
+      document.querySelectorAll(`input[name="${radioName}"]`).forEach(radio => {
+        radio.closest('.chip').classList.remove('active');
+      });
+      this.classList.add('active');
+    });
+  });
 }
 
 function openUploadModal(aid) {
