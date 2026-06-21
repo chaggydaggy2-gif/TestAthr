@@ -4904,25 +4904,16 @@ document.addEventListener('submit', (e) => {
         const moving = fd.get(`s_${s.id}_moving`) || '';
         const remark = fd.get(`remark_${s.id}`) || '';
         
-        const firstWrong = fd.get(`w_${s.id}_first`) === 'on';
-        const middleWrong = fd.get(`w_${s.id}_middle`) === 'on';
-        const lastWrong = fd.get(`w_${s.id}_last`) === 'on';
-        const movingWrong = fd.get(`w_${s.id}_moving`) === 'on';
+        const isWrong = fd.get(`w_${s.id}`) === 'on';
         
-        results[s.id] = { first, middle, last, moving, firstWrong, middleWrong, lastWrong, movingWrong };
+        results[s.id] = { first, middle, last, moving, isWrong };
         if (remark) remarks[s.id] = remark;
         
-        // If ANY position is marked as 'wrong', add to wrongSounds for goal generation
-        if (firstWrong || middleWrong || lastWrong || movingWrong) {
+        // If sound is marked as wrong, add to wrongSounds for goal generation
+        if (isWrong) {
           wrongSounds.push({
             id: s.id,
-            sound: s.sound,
-            positions: {
-              first: firstWrong,
-              middle: middleWrong,
-              last: lastWrong,
-              moving: movingWrong
-            }
+            sound: s.sound
           });
         }
       });
@@ -5224,7 +5215,6 @@ document.addEventListener('submit', (e) => {
     if (!sid || !day) { toast('أكملي البيانات', 'warn'); return; }
     const time = fd.get('time');
     const duration = Number(fd.get('duration')) || 30;
-    const goalType = fd.get('goalType') || 'cognitive';
     
     // Check time conflicts across this teacher's students for the same day
     const teacherId = STATE.user.id;
@@ -5245,8 +5235,7 @@ document.addEventListener('submit', (e) => {
     if (st) {
       const newSlot = {
         day, time, duration,
-        room: (fd.get('room') || 'غرفة ١').trim(),
-        goalType
+        room: (fd.get('room') || 'غرفة ١').trim()
       };
       
       // Update schedule array
@@ -5699,24 +5688,6 @@ function openAddSlotModal(presetDay) {
       </div>
       
       <div class="field">
-        <label>نوع الهدف</label>
-        <div class="row wrap" id="goal-type-row">
-          <label class="chip active" style="cursor:pointer">
-            <input type="radio" name="goalType" value="cognitive" checked hidden>
-            <span>إدراكي</span>
-          </label>
-          <label class="chip" style="cursor:pointer">
-            <input type="radio" name="goalType" value="receptive-expressive" hidden>
-            <span>استقبالي وتعبيري</span>
-          </label>
-          <label class="chip" style="cursor:pointer">
-            <input type="radio" name="goalType" value="articulation" hidden>
-            <span>النطق</span>
-          </label>
-        </div>
-      </div>
-      
-      <div class="field">
         <label>اليوم</label>
         <div class="row wrap" id="slot-day-row">
           ${dayKeys.map((dk, i) => `
@@ -5744,13 +5715,6 @@ function openAddSlotModal(presetDay) {
       <button type="submit" class="btn lg block">${I.check}<span>حفظ في الجدول</span></button>
     </form>
   `);
-
-  document.getElementById('goal-type-row')?.querySelectorAll('label').forEach(lbl => {
-    lbl.addEventListener('click', () => {
-      lbl.parentElement.querySelectorAll('label').forEach(x => x.classList.remove('active'));
-      lbl.classList.add('active');
-    });
-  });
 
   document.getElementById('slot-day-row')?.querySelectorAll('label').forEach(lbl => {
     lbl.addEventListener('click', () => {
@@ -6258,87 +6222,77 @@ function renderSpeechTestForm(st, data, viewOnly) {
         </button>
       </div>
       
-      <table class="speech-test-table" style="width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed;">
+      <table class="speech-test-table" style="width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed;">
         <thead>
-          <tr style="background: #333; color: white;">
-            <th style="padding: 6px 2px; border: 1px solid #ddd; text-align: center; width: 30px;">الرقم</th>
-            <th style="padding: 6px 4px; border: 1px solid #ddd; text-align: center; width: 40px;">الصوت</th>
-            <th style="padding: 6px 4px; border: 1px solid #ddd; text-align: center;">المفــــــــــردات</th>
-            <th style="padding: 6px 2px; border: 1px solid #ddd; text-align: center; width: 70px;">أول</th>
-            <th style="padding: 6px 2px; border: 1px solid #ddd; text-align: center; width: 70px;">وسط</th>
-            <th style="padding: 6px 2px; border: 1px solid #ddd; text-align: center; width: 70px;">أخر</th>
-            <th style="padding: 6px 2px; border: 1px solid #ddd; text-align: center; width: 70px;">مجرد</th>
-            <th style="padding: 6px 4px; border: 1px solid #ddd; text-align: center; min-width: 100px;">ملاحظات</th>
+          <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <th style="padding: 10px 4px; border: 1px solid #ddd; text-align: center; width: 40px; font-weight: 600;">الرقم</th>
+            <th style="padding: 10px 6px; border: 1px solid #ddd; text-align: center; width: 80px; font-weight: 600;">الصوت</th>
+            <th style="padding: 10px 6px; border: 1px solid #ddd; text-align: center; font-weight: 600;">المفــــــــــردات</th>
+            <th style="padding: 10px 4px; border: 1px solid #ddd; text-align: center; width: 90px; font-weight: 600;">أول</th>
+            <th style="padding: 10px 4px; border: 1px solid #ddd; text-align: center; width: 90px; font-weight: 600;">وسط</th>
+            <th style="padding: 10px 4px; border: 1px solid #ddd; text-align: center; width: 90px; font-weight: 600;">أخر</th>
+            <th style="padding: 10px 4px; border: 1px solid #ddd; text-align: center; width: 90px; font-weight: 600;">مجرد</th>
+            <th style="padding: 10px 6px; border: 1px solid #ddd; text-align: center; min-width: 120px; font-weight: 600;">ملاحظات</th>
           </tr>
         </thead>
         <tbody>
-          ${SPEECH_TEST_SOUNDS.map(s => {
+          ${SPEECH_TEST_SOUNDS.map((s, idx) => {
             const r = results[s.id] || {};
+            const rowBg = idx % 2 === 0 ? '#ffffff' : '#f9fafb';
             return `
-            <tr>
-              <td style="padding: 4px 2px; border: 1px solid #ddd; text-align: center; font-size: 11px;">${arNum(s.num)}</td>
-              <td style="padding: 4px 2px; border: 1px solid #ddd; text-align: center; font-weight: bold; font-size: 15px;">${s.sound}</td>
-              <td style="padding: 4px 6px; border: 1px solid #ddd; text-align: right; font-size: 11px;">${s.words}</td>
+            <tr style="background: ${rowBg}; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='${rowBg}'">
+              <td style="padding: 8px 4px; border: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #6b7280;">${arNum(s.num)}</td>
               
-              <!-- First position -->
-              <td style="padding: 2px; border: 1px solid #ddd;">
-                <div style="display: flex; align-items: center; gap: 2px; justify-content: center;">
-                  <input type="text" name="s_${s.id}_first" value="${esc(r.first || '')}" ${viewOnly ? 'disabled' : ''}
-                         style="width: 38px; border: 1px solid #ddd; padding: 2px; font-size: 12px; text-align: center; background: white; color: ${r.firstWrong ? '#c62828' : 'inherit'}; font-weight: ${r.firstWrong ? 'bold' : 'normal'};">
-                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0; flex-shrink: 0;">
-                    <input type="checkbox" name="w_${s.id}_first" ${r.firstWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
-                           onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
-                           style="margin: 0; cursor: pointer; width: 12px; height: 12px;">
-                    <span style="font-size: 12px; color: #c62828; margin-left: 1px; line-height: 1;">✗</span>
+              <!-- Sound column with checkbox -->
+              <td style="padding: 8px 4px; border: 1px solid #e5e7eb; text-align: center; background: ${r.isWrong ? '#fee2e2' : rowBg};">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                  <div style="font-weight: 700; font-size: 20px; color: ${r.isWrong ? '#dc2626' : '#1f2937'}; text-shadow: ${r.isWrong ? '0 0 8px rgba(220,38,38,0.3)' : 'none'};">${s.sound}</div>
+                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0; padding: 2px 6px; border-radius: 4px; background: ${r.isWrong ? '#fecaca' : '#f3f4f6'}; transition: all 0.2s;">
+                    <input type="checkbox" name="w_${s.id}" ${r.isWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
+                           onchange="const row = this.closest('tr'); const soundCell = row.children[1]; const soundText = soundCell.querySelector('div > div'); const label = this.closest('label'); if(this.checked) { soundText.style.color = '#dc2626'; soundText.style.textShadow = '0 0 8px rgba(220,38,38,0.3)'; soundCell.style.background = '#fee2e2'; label.style.background = '#fecaca'; } else { soundText.style.color = '#1f2937'; soundText.style.textShadow = 'none'; soundCell.style.background = '${rowBg}'; label.style.background = '#f3f4f6'; }"
+                           style="margin: 0 4px 0 0; cursor: pointer; width: 16px; height: 16px; accent-color: #dc2626;">
+                    <span style="font-size: 14px; color: #dc2626; font-weight: 600;">✗</span>
                   </label>
                 </div>
               </td>
               
-              <!-- Middle position -->
-              <td style="padding: 2px; border: 1px solid #ddd;">
-                <div style="display: flex; align-items: center; gap: 2px; justify-content: center;">
-                  <input type="text" name="s_${s.id}_middle" value="${esc(r.middle || '')}" ${viewOnly ? 'disabled' : ''}
-                         style="width: 38px; border: 1px solid #ddd; padding: 2px; font-size: 12px; text-align: center; background: white; color: ${r.middleWrong ? '#c62828' : 'inherit'}; font-weight: ${r.middleWrong ? 'bold' : 'normal'};">
-                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0; flex-shrink: 0;">
-                    <input type="checkbox" name="w_${s.id}_middle" ${r.middleWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
-                           onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
-                           style="margin: 0; cursor: pointer; width: 12px; height: 12px;">
-                    <span style="font-size: 12px; color: #c62828; margin-left: 1px; line-height: 1;">✗</span>
-                  </label>
-                </div>
+              <td style="padding: 8px 8px; border: 1px solid #e5e7eb; text-align: right; font-size: 12px; color: #374151;">${s.words}</td>
+              
+              <!-- Position columns - just text inputs, no checkboxes -->
+              <td style="padding: 6px; border: 1px solid #e5e7eb; text-align: center;">
+                <input type="text" name="s_${s.id}_first" value="${esc(r.first || '')}" ${viewOnly ? 'disabled' : ''}
+                       style="width: 100%; border: 1px solid #d1d5db; padding: 6px; font-size: 13px; text-align: center; border-radius: 6px; transition: all 0.2s;" 
+                       onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102,126,234,0.1)'" 
+                       onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none'">
               </td>
               
-              <!-- Last position -->
-              <td style="padding: 2px; border: 1px solid #ddd;">
-                <div style="display: flex; align-items: center; gap: 2px; justify-content: center;">
-                  <input type="text" name="s_${s.id}_last" value="${esc(r.last || '')}" ${viewOnly ? 'disabled' : ''}
-                         style="width: 38px; border: 1px solid #ddd; padding: 2px; font-size: 12px; text-align: center; background: white; color: ${r.lastWrong ? '#c62828' : 'inherit'}; font-weight: ${r.lastWrong ? 'bold' : 'normal'};">
-                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0; flex-shrink: 0;">
-                    <input type="checkbox" name="w_${s.id}_last" ${r.lastWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
-                           onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
-                           style="margin: 0; cursor: pointer; width: 12px; height: 12px;">
-                    <span style="font-size: 12px; color: #c62828; margin-left: 1px; line-height: 1;">✗</span>
-                  </label>
-                </div>
+              <td style="padding: 6px; border: 1px solid #e5e7eb; text-align: center;">
+                <input type="text" name="s_${s.id}_middle" value="${esc(r.middle || '')}" ${viewOnly ? 'disabled' : ''}
+                       style="width: 100%; border: 1px solid #d1d5db; padding: 6px; font-size: 13px; text-align: center; border-radius: 6px; transition: all 0.2s;" 
+                       onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102,126,234,0.1)'" 
+                       onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none'">
               </td>
               
-              <!-- Moving position -->
-              <td style="padding: 2px; border: 1px solid #ddd;">
-                <div style="display: flex; align-items: center; gap: 2px; justify-content: center;">
-                  <input type="text" name="s_${s.id}_moving" value="${esc(r.moving || '')}" ${viewOnly ? 'disabled' : ''}
-                         style="width: 38px; border: 1px solid #ddd; padding: 2px; font-size: 12px; text-align: center; background: white; color: ${r.movingWrong ? '#c62828' : 'inherit'}; font-weight: ${r.movingWrong ? 'bold' : 'normal'};">
-                  <label style="display: flex; align-items: center; cursor: pointer; margin: 0; flex-shrink: 0;">
-                    <input type="checkbox" name="w_${s.id}_moving" ${r.movingWrong ? 'checked' : ''} ${viewOnly ? 'disabled' : ''}
-                           onchange="const inp = this.closest('td').querySelector('input[type=text]'); inp.style.color = this.checked ? '#c62828' : 'inherit'; inp.style.fontWeight = this.checked ? 'bold' : 'normal';"
-                           style="margin: 0; cursor: pointer; width: 12px; height: 12px;">
-                    <span style="font-size: 12px; color: #c62828; margin-left: 1px; line-height: 1;">✗</span>
-                  </label>
-                </div>
+              <td style="padding: 6px; border: 1px solid #e5e7eb; text-align: center;">
+                <input type="text" name="s_${s.id}_last" value="${esc(r.last || '')}" ${viewOnly ? 'disabled' : ''}
+                       style="width: 100%; border: 1px solid #d1d5db; padding: 6px; font-size: 13px; text-align: center; border-radius: 6px; transition: all 0.2s;" 
+                       onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102,126,234,0.1)'" 
+                       onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none'">
               </td>
               
-              <td style="padding: 3px; border: 1px solid #ddd;">
+              <td style="padding: 6px; border: 1px solid #e5e7eb; text-align: center;">
+                <input type="text" name="s_${s.id}_moving" value="${esc(r.moving || '')}" ${viewOnly ? 'disabled' : ''}
+                       style="width: 100%; border: 1px solid #d1d5db; padding: 6px; font-size: 13px; text-align: center; border-radius: 6px; transition: all 0.2s;" 
+                       onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102,126,234,0.1)'" 
+                       onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none'">
+              </td>
+              
+              <td style="padding: 6px; border: 1px solid #e5e7eb;">
                 <input type="text" name="remark_${s.id}" value="${esc(remarks[s.id] || '')}" ${viewOnly ? 'disabled' : ''}
-                       style="width: 100%; border: none; padding: 2px; font-size: 11px;" placeholder="ملاحظات">
+                       style="width: 100%; border: 1px solid #d1d5db; padding: 6px; font-size: 12px; border-radius: 6px; transition: all 0.2s;" 
+                       placeholder="ملاحظات"
+                       onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102,126,234,0.1)'" 
+                       onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none'">
               </td>
             </tr>
           `}).join('')}
