@@ -7272,56 +7272,6 @@ function openAddLibraryModal() {
 
       <div class="field">
         <label>الرابط (اختياري)</label>
-
-function openSendToStudentModal(libraryId) {
-  const item = STATE.data.library.find(l => l.id === libraryId);
-  if (!item) return;
-  
-  const myStudents = STATE.data.students.filter(s => s.teacherId === STATE.user.id && !s.archived);
-  
-  openModal(`
-    <div class="modal-head">
-      <h2>إرسال إلى الطالبات</h2>
-      <button class="x" data-action="close-modal">${I.close}</button>
-    </div>
-    <form data-form="send-library-item" data-library-id="${libraryId}">
-      <div class="card tight" style="background: #f9fafb; margin-bottom: 16px;">
-        <div style="font-weight: 600; margin-bottom: 4px;">${esc(item.title)}</div>
-        <div style="font-size: 13px; color: #6b7280;">
-          ${item.type === 'image' ? '🖼️ صورة' : item.type === 'pdf' ? '📕 PDF' : item.type === 'video' ? '🎬 فيديو' : item.type === 'worksheet' ? '📄 ورقة عمل' : '🔗 رابط'}
-        </div>
-      </div>
-      
-      <div class="field">
-        <label>اختاري الطالبات</label>
-        ${myStudents.length ? `
-          <div class="stack gap-sm">
-            ${myStudents.map(s => `
-              <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s;" 
-                     onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#667eea'"
-                     onmouseout="this.style.background='white'; this.style.borderColor='#e5e7eb'">
-                <input type="checkbox" name="students[]" value="${s.id}" style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
-                <div style="flex: 1;">
-                  <div style="font-weight: 600; font-size: 14px;">${esc(s.name)}</div>
-                  <div style="font-size: 12px; color: #6b7280;">${esc(s.grade || '')}</div>
-                </div>
-              </label>
-            `).join('')}
-          </div>
-        ` : `
-          <div class="text-sm text-muted center" style="padding: 24px;">
-            لا توجد طالبات حالياً
-          </div>
-        `}
-      </div>
-      
-      <button type="submit" class="btn lg block" ${!myStudents.length ? 'disabled' : ''}>
-        ${I.send}<span>إرسال للطالبات المحددات</span>
-      </button>
-    </form>
-  `, { lg: true });
-}
-
         <input name="link" type="url" placeholder="https://...">
       </div>
 
@@ -7378,20 +7328,56 @@ function openSendToStudentModal(libraryId) {
   }
 }
 
-function formatBytes(b) {
-  if (b < 1024) return b + ' B';
-  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
-  return (b / 1024 / 1024).toFixed(1) + ' MB';
+function openSendToStudentModal(libraryId) {
+  const item = STATE.data.library.find(l => l.id === libraryId);
+  if (!item) return;
+  
+  const myStudents = STATE.data.students.filter(s => s.teacherId === STATE.user.id && !s.archived);
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>إرسال إلى الطالبات</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="send-library-item" data-library-id="${libraryId}">
+      <div class="card tight" style="background: #f9fafb; margin-bottom: 16px;">
+        <div style="font-weight: 600; margin-bottom: 4px;">${esc(item.title)}</div>
+        <div style="font-size: 13px; color: #6b7280;">
+          ${item.type === 'image' ? '🖼️ صورة' : item.type === 'pdf' ? '📕 PDF' : item.type === 'video' ? '🎬 فيديو' : item.type === 'worksheet' ? '📄 ورقة عمل' : '🔗 رابط'}
+        </div>
+      </div>
+      
+      <div class="field">
+        <label>اختاري الطالبات</label>
+        ${myStudents.length ? `
+          <div class="stack gap-sm">
+            ${myStudents.map(s => `
+              <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s;" 
+                     onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#667eea'"
+                     onmouseout="this.style.background='white'; this.style.borderColor='#e5e7eb'">
+                <input type="checkbox" name="students[]" value="${s.id}" style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                <div style="flex: 1;">
+                  <div style="font-weight: 600; font-size: 14px;">${esc(s.name)}</div>
+                  <div style="font-size: 12px; color: #6b7280;">${esc(s.grade || '')}</div>
+                </div>
+              </label>
+            `).join('')}
+          </div>
+        ` : `
+          <div class="text-sm text-muted center" style="padding: 24px;">
+            لا توجد طالبات حالياً
+          </div>
+        `}
+      </div>
+      
+      <button type="submit" class="btn lg block" ${!myStudents.length ? 'disabled' : ''}>
+        ${I.send}<span>إرسال للطالبات المحددات</span>
+      </button>
+    </form>
+  `, { lg: true });
 }
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
+
 
 /* Suggest session goals based on plan + recent session history */
 function suggestSessionGoals(student, allGoalObjs, count = 3) {
