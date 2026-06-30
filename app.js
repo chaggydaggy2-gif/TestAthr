@@ -3299,10 +3299,8 @@ function viewLibrary(role) {
 
   const typeFilters = [
     { key: '',         label: 'الكل',      icon: I.grid },
-    { key: 'video',    label: 'فيديو',    icon: I.video },
     { key: 'worksheet',label: 'أوراق عمل', icon: I.file },
     { key: 'pdf',      label: 'PDF',       icon: I.file },
-    { key: 'link',     label: 'روابط',    icon: I.link },
     { key: 'image',    label: 'صور',       icon: I.image },
   ];
 
@@ -3310,7 +3308,7 @@ function viewLibrary(role) {
     <div class="page-head">
       <div>
         <h1>مكتبة المحتوى</h1>
-        <div class="sub">${arNum(allItems.length)} عنصراً — فيديوهات، أوراق عمل، وألعاب جاهزة</div>
+        <div class="sub">${arNum(allItems.length)} عنصراً — PDF، صور، وأوراق عمل</div>
       </div>
       ${role === 'teacher' ? `<button class="btn" data-action="add-library">${I.plus}<span>إضافة محتوى</span></button>` : ''}
     </div>
@@ -7229,10 +7227,8 @@ function openAddLibraryModal() {
         <label>نوع المحتوى</label>
         <div class="row wrap" id="lib-type-row">
           ${[
-            { v: 'video',     l: '🎬 فيديو' },
             { v: 'worksheet', l: '📄 ورقة عمل' },
             { v: 'pdf',       l: '📕 PDF' },
-            { v: 'link',      l: '🔗 رابط' },
             { v: 'image',     l: '🖼️ صور' },
           ].map((t, i) => `
             <label class="chip ${i===0?'active':''}" style="cursor:pointer">
@@ -7257,7 +7253,7 @@ function openAddLibraryModal() {
         </div>
         <div class="field" style="flex:1">
           <label>المدة / الحجم</label>
-          <input name="meta" placeholder="مثال: ٤ دقائق أو 12 MB">
+          <input name="meta" placeholder="مثال: 12 MB">
         </div>
       </div>
 
