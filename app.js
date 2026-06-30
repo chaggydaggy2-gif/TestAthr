@@ -5400,24 +5400,39 @@ document.addEventListener('submit', (e) => {
       return;
     }
     
-    // Initialize sentLibraryItems if it doesn't exist
-    if (!STATE.data.sentLibraryItems) STATE.data.sentLibraryItems = [];
-    
-    // Create sent item record for each student
-    selectedStudents.forEach(studentId => {
-      STATE.data.sentLibraryItems.push({
-        id: 'sent-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
-        libraryItemId: libraryId,
-        studentId: studentId,
-        sentBy: STATE.user.id,
-        sentAt: new Date().toISOString(),
-        viewed: false
-      });
-    });
-    
-    persistState();
-    closeModal();
-    toast(`تم إرسال المحتوى إلى ${arNum(selectedStudents.length)} طالبة`);
+    // Save to Supabase
+    (async () => {
+      try {
+        // Initialize sentLibraryItems if it doesn't exist
+        if (!STATE.data.sentLibraryItems) STATE.data.sentLibraryItems = [];
+        
+        // Create sent item records for each student
+        const newItems = selectedStudents.map(studentId => ({
+          id: 'sent-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+          libraryItemId: libraryId,
+          studentId: studentId,
+          sentBy: STATE.user.id,
+          sentAt: new Date().toISOString(),
+          viewed: false
+        }));
+        
+        // Insert into Supabase
+        const { error } = await window.supabaseClient
+          .from('sentLibraryItems')
+          .insert(newItems);
+        
+        if (error) throw error;
+        
+        // Add to local state
+        STATE.data.sentLibraryItems.push(...newItems);
+        persistState();
+        closeModal();
+        toast(`✅ تم إرسال المحتوى إلى ${arNum(selectedStudents.length)} طالبة`);
+      } catch (error) {
+        console.error('Error sending library item:', error);
+        toast('حدث خطأ أثناء الإرسال', 'error');
+      }
+    })();
     return;
   }
 
@@ -7343,7 +7358,7 @@ function openSendToStudentModal(libraryId) {
   const item = STATE.data.library.find(l => l.id === libraryId);
   if (!item) return;
   
-  const myStudents = STATE.data.students.filter(s => s.teacherId === STATE.user.id && !s.archived);
+  const myStudents = STATE.data.students.filter(s => s.teacher_id === STATE.user.id && !s.archived);
   
   openModal(`
     <div class="modal-head">
@@ -8947,6 +8962,27 @@ async function loadDataFromSupabase() {
       sessionLogs: sessionLogs?.length || 0,
       messages: messages?.length || 0,
     });
+    
+    // Load sent library items
+    let sentLibraryQuery = window.supabaseClient
+      .from('sentLibraryItems')
+      .select('*');
+    
+    // Teachers see items they sent
+    if (STATE.user.role === 'teacher') {
+      sentLibraryQuery = sentLibraryQuery.eq('sentBy', STATE.user.id);
+    }
+    
+    // Parents see items sent to their child
+    if (STATE.user.role === 'parent' && STATE.user.studentId) {
+      sentLibraryQuery = sentLibraryQuery.eq('studentId', STATE.user.studentId);
+    }
+    
+    const { data: sentLibraryItems } = await sentLibraryQuery;
+    if (sentLibraryItems) {
+      STATE.data.sentLibraryItems = sentLibraryItems;
+      console.log('✅ Loaded sent library items:', sentLibraryItems.length);
+    }
     
     // ✅ Setup realtime subscriptions for messages
     setupRealtimeSubscriptions();
