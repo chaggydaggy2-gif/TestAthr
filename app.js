@@ -5395,6 +5395,8 @@ document.addEventListener('submit', (e) => {
     const fd = new FormData(fSendLib);
     const selectedStudents = fd.getAll('students[]');
     
+    console.log('📤 Sending library item:', libraryId, 'to students:', selectedStudents);
+    
     if (!selectedStudents.length) {
       toast('اختاري طالبة واحدة على الأقل', 'warn');
       return;
@@ -5416,12 +5418,17 @@ document.addEventListener('submit', (e) => {
           viewed: false
         }));
         
+        console.log('💾 Saving to Supabase:', newItems);
+        
         // Insert into Supabase
-        const { error } = await window.supabaseClient
+        const { data, error } = await window.supabaseClient
           .from('sentLibraryItems')
-          .insert(newItems);
+          .insert(newItems)
+          .select();
         
         if (error) throw error;
+        
+        console.log('✅ Saved successfully:', data);
         
         // Add to local state
         STATE.data.sentLibraryItems.push(...newItems);
@@ -5429,8 +5436,8 @@ document.addEventListener('submit', (e) => {
         closeModal();
         toast(`✅ تم إرسال المحتوى إلى ${arNum(selectedStudents.length)} طالبة`);
       } catch (error) {
-        console.error('Error sending library item:', error);
-        toast('حدث خطأ أثناء الإرسال', 'error');
+        console.error('❌ Error sending library item:', error);
+        toast('حدث خطأ أثناء الإرسال: ' + error.message, 'error');
       }
     })();
     return;
@@ -7356,9 +7363,15 @@ function fileToDataUrl(file) {
 
 function openSendToStudentModal(libraryId) {
   const item = STATE.data.library.find(l => l.id === libraryId);
-  if (!item) return;
+  if (!item) {
+    console.error('❌ Library item not found:', libraryId);
+    return;
+  }
   
   const myStudents = STATE.data.students.filter(s => s.teacher_id === STATE.user.id && !s.archived);
+  console.log('📚 Opening send modal for:', item.title);
+  console.log('👥 My students:', myStudents.length, myStudents);
+  console.log('👤 Current user:', STATE.user.id, STATE.user.role);
   
   openModal(`
     <div class="modal-head">
