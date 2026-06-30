@@ -2612,6 +2612,62 @@ function viewParentDashboard() {
           </div>
         `}
 
+        ${(() => {
+          const sentItems = (STATE.data.sentLibraryItems || [])
+            .filter(si => si.studentId === child.id)
+            .sort((a, b) => (b.sentAt || '').localeCompare(a.sentAt || ''))
+            .slice(0, 5);
+          
+          if (!sentItems.length) return '';
+          
+          return `
+            <div class="card">
+              <div class="card-title">
+                <h3>المحتوى المرسل من المعلمة</h3>
+                <span class="pill primary">${arNum(sentItems.length)}</span>
+              </div>
+              <div class="stack gap-sm">
+                ${sentItems.map(si => {
+                  const item = STATE.data.library.find(l => l.id === si.libraryItemId);
+                  if (!item) return '';
+                  
+                  const typeIcons = {
+                    video: '🎬',
+                    pdf: '📕',
+                    image: '🖼️',
+                    worksheet: '📄',
+                    link: '🔗'
+                  };
+                  
+                  const hasFile = !!item.fileData;
+                  const hasLink = !!item.link;
+                  
+                  return `
+                    <div style="padding: 12px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="font-size: 24px;">${typeIcons[item.type] || '📄'}</div>
+                        <div style="flex: 1;">
+                          <div style="font-weight: 600; font-size: 14px; margin-bottom: 2px;">${esc(item.title)}</div>
+                          <div style="font-size: 12px; color: #6b7280;">${fmtRelative(si.sentAt)}</div>
+                        </div>
+                        ${hasFile ? `
+                          <button class="btn soft sm" data-action="download-library" data-id="${item.id}">
+                            ${I.download}
+                          </button>
+                        ` : hasLink ? `
+                          <button class="btn soft sm" data-action="open-library-link" data-url="${esc(item.link)}">
+                            ${I.link}
+                          </button>
+                        ` : ''}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        })()}
+
         ${sessionToday ? `
           <div class="card" style="border-color:var(--primary)">
             <div class="card-title">
@@ -3331,6 +3387,11 @@ function libraryCard(it, role) {
         ` : `
           <button class="btn soft sm block" disabled>${I.eye}<span>غير متوفر</span></button>
         `}
+        ${role === 'teacher' && (hasFile || hasLink) ? `
+          <button class="btn sm block" data-action="send-to-student" data-id="${it.id}" style="background: var(--accent); color: white;">
+            ${I.send}<span>إرسال</span>
+          </button>
+        ` : ''}
       </div>
       <div class="row mt-md text-xs text-muted">
         ${it.duration ? `<span>${esc(it.duration)}</span><span>•</span>` : ''}
@@ -3918,6 +3979,11 @@ document.addEventListener('click', async (e) => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      return;
+    }
+    if (a === 'send-to-student') {
+      const id = action.getAttribute('data-id');
+      openSendToStudentModal(id);
       return;
     }
     if (a === 'open-library-link') {
@@ -5319,6 +5385,44 @@ document.addEventListener('submit', (e) => {
     })();
     return;
   }
+
+  // Send Library Item to Students
+  const fSendLib = e.target.closest('[data-form="send-library-item"]');
+  if (fSendLib) {
+    e.preventDefault();
+    const libraryId = fSendLib.getAttribute('data-library-id');
+    const item = STATE.data.library.find(l => l.id === libraryId);
+    if (!item) return;
+    
+    const fd = new FormData(fSendLib);
+    const selectedStudents = fd.getAll('students[]');
+    
+    if (!selectedStudents.length) {
+      toast('اختاري طالبة واحدة على الأقل', 'warn');
+      return;
+    }
+    
+    // Initialize sentLibraryItems if it doesn't exist
+    if (!STATE.data.sentLibraryItems) STATE.data.sentLibraryItems = [];
+    
+    // Create sent item record for each student
+    selectedStudents.forEach(studentId => {
+      STATE.data.sentLibraryItems.push({
+        id: 'sent-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+        libraryItemId: libraryId,
+        studentId: studentId,
+        sentBy: STATE.user.id,
+        sentAt: new Date().toISOString(),
+        viewed: false
+      });
+    });
+    
+    persistState();
+    closeModal();
+    toast(`تم إرسال المحتوى إلى ${arNum(selectedStudents.length)} طالبة`);
+    return;
+  }
+
 
   // Add custom goal to session
   const fCustomGoal = e.target.closest('[data-form="add-custom-goal-form"]');
@@ -7168,6 +7272,56 @@ function openAddLibraryModal() {
 
       <div class="field">
         <label>الرابط (اختياري)</label>
+
+function openSendToStudentModal(libraryId) {
+  const item = STATE.data.library.find(l => l.id === libraryId);
+  if (!item) return;
+  
+  const myStudents = STATE.data.students.filter(s => s.teacherId === STATE.user.id && !s.archived);
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>إرسال إلى الطالبات</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="send-library-item" data-library-id="${libraryId}">
+      <div class="card tight" style="background: #f9fafb; margin-bottom: 16px;">
+        <div style="font-weight: 600; margin-bottom: 4px;">${esc(item.title)}</div>
+        <div style="font-size: 13px; color: #6b7280;">
+          ${item.type === 'image' ? '🖼️ صورة' : item.type === 'pdf' ? '📕 PDF' : item.type === 'video' ? '🎬 فيديو' : item.type === 'worksheet' ? '📄 ورقة عمل' : '🔗 رابط'}
+        </div>
+      </div>
+      
+      <div class="field">
+        <label>اختاري الطالبات</label>
+        ${myStudents.length ? `
+          <div class="stack gap-sm">
+            ${myStudents.map(s => `
+              <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s;" 
+                     onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#667eea'"
+                     onmouseout="this.style.background='white'; this.style.borderColor='#e5e7eb'">
+                <input type="checkbox" name="students[]" value="${s.id}" style="width: 18px; height: 18px; cursor: pointer; accent-color: #667eea;">
+                <div style="flex: 1;">
+                  <div style="font-weight: 600; font-size: 14px;">${esc(s.name)}</div>
+                  <div style="font-size: 12px; color: #6b7280;">${esc(s.grade || '')}</div>
+                </div>
+              </label>
+            `).join('')}
+          </div>
+        ` : `
+          <div class="text-sm text-muted center" style="padding: 24px;">
+            لا توجد طالبات حالياً
+          </div>
+        `}
+      </div>
+      
+      <button type="submit" class="btn lg block" ${!myStudents.length ? 'disabled' : ''}>
+        ${I.send}<span>إرسال للطالبات المحددات</span>
+      </button>
+    </form>
+  `, { lg: true });
+}
+
         <input name="link" type="url" placeholder="https://...">
       </div>
 
