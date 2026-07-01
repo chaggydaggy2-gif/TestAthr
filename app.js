@@ -5337,21 +5337,25 @@ document.addEventListener('submit', (e) => {
       const fd = new FormData(fAddLib);
       const title = (fd.get('title') || '').trim();
       if (!title) { toast('أدخلي عنواناً للمحتوى', 'warn'); return; }
-      const type = fd.get('type') || 'video';
+      const type = fd.get('type') || 'worksheet';
       const skillIds = Array.from(fAddLib.querySelectorAll('[data-lib-skill].active')).map(el => el.getAttribute('data-lib-skill'));
       const meta = (fd.get('meta') || '').trim();
       const link = (fd.get('link') || '').trim();
       const file = fd.get('file');
       const newItem = {
         id: 'lb-new-' + Date.now(),
-        type, title,
+        school_id: STATE.user.school_id,
+        teacher_id: STATE.user.id,
+        type, 
+        title,
         skillIds,
         difficulty: fd.get('difficulty') || 'مبتدئ',
       };
       if (type === 'video' && meta) newItem.duration = meta;
       if (meta && type !== 'video') newItem.size = meta;
       if (link) newItem.link = link;
-      // Real file storage (base64 in localStorage, capped at 10MB)
+      
+      // Real file storage (base64 in Supabase)
       if (file && file.size > 0) {
         try {
           const dataUrl = await fileToDataUrl(file);
@@ -5365,18 +5369,29 @@ document.addEventListener('submit', (e) => {
           return;
         }
       }
+      
       if (!link && !newItem.fileData) {
         toast('أضيفي رابطاً أو ملفاً', 'warn');
         return;
       }
-      STATE.data.library.unshift(newItem);
-      try { persistState(); }
-      catch (err) {
-        // localStorage quota — remove and warn
-        STATE.data.library.shift();
-        toast('حجم البيانات المحلية ممتلئ. جرّبي ملفاً أصغر.', 'error');
+      
+      // Save to Supabase
+      const { data, error } = await window.supabaseClient
+        .from('library')
+        .insert([newItem])
+        .select();
+      
+      if (error) {
+        console.error('❌ Error saving library item:', error);
+        toast('حدث خطأ أثناء الحفظ: ' + error.message, 'error');
         return;
       }
+      
+      console.log('✅ Library item saved to Supabase:', data);
+      
+      // Add to local state
+      STATE.data.library.unshift(newItem);
+      persistState();
       closeModal();
       toast('تمت إضافة المحتوى');
       handleRoute();
@@ -8975,6 +8990,18 @@ async function loadDataFromSupabase() {
       sessionLogs: sessionLogs?.length || 0,
       messages: messages?.length || 0,
     });
+    
+    // Load library items
+    let libraryQuery = window.supabaseClient
+      .from('library')
+      .select('*')
+      .eq('school_id', STATE.user.school_id);
+    
+    const { data: library } = await libraryQuery;
+    if (library) {
+      STATE.data.library = library;
+      console.log('✅ Loaded library items:', library.length);
+    }
     
     // Load sent library items
     let sentLibraryQuery = window.supabaseClient
