@@ -140,9 +140,9 @@ function initData() {
   STATE.config = JSON.parse(JSON.stringify({ 
     ...DEFAULT_CONFIG, 
     school: window.DEFAULT_SCHOOL_CONFIG || {
-      name: 'مدرسة النور للتربية الخاصة',
-      shortName: 'مدرسة النور',
-      principal: { name: 'المدير', title: 'مدير المدرسة', initials: 'م', color: 'c-purple' },
+      name: 'الابتدائية 382',
+      shortName: 'الابتدائية 382',
+      principal: { name: 'بدرية العتيبي', title: 'مديرة المدرسة', initials: 'ب', color: 'c-purple' },
       address: 'الرياض',
       phone: '0112345678',
     }
