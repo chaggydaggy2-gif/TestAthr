@@ -1069,10 +1069,14 @@ function viewTeacherDashboard() {
       if (slot.day === dk) out.push({ student: st, ...slot });
     }));
     return out.sort((a,b) => {
-      // Sort by period number
-      const periodA = parseInt(a.period) || 0;
-      const periodB = parseInt(b.period) || 0;
-      return periodA - periodB;
+      // Support both old (time) and new (period) format
+      if (a.period && b.period) {
+        return parseInt(a.period) - parseInt(b.period);
+      }
+      if (a.time && b.time) {
+        return a.time.localeCompare(b.time);
+      }
+      return a.period ? -1 : 1;
     });
   };
   const todaysSessions = sessionsOnDay(selectedKey);
@@ -1122,8 +1126,8 @@ function viewTeacherDashboard() {
         ${todaysSessions.length ? todaysSessions.map(s => `
           <a class="session" href="#/teacher/student/${s.student.id}" data-route="#/teacher/student/${s.student.id}">
             <div class="time">
-              <div class="t">${getPeriodLabel(s.period)}</div>
-              <div class="dur">${esc(s.room || 'غرفة ١')}</div>
+              <div class="t">${s.period ? getPeriodLabel(s.period) : (s.time || 'غير محدد')}</div>
+              <div class="dur">${s.period ? (s.room || 'غرفة ١') : ((s.duration || 30) + ' د')}</div>
             </div>
             <div class="line"></div>
             ${avatar(s.student, 'lg')}
@@ -5309,7 +5313,7 @@ document.addEventListener('submit', (e) => {
     let conflict = null;
     myStudents.forEach(s => (s.schedule || []).forEach(slot => {
       if (slot.day !== day) return;
-      if (slot.period === period) conflict = { student: s, slot };
+      if (slot.period && slot.period === period) conflict = { student: s, slot };
     }));
     if (conflict) {
       toast(`تعارض مع جلسة ${conflict.student.name} في ${getPeriodLabel(conflict.slot.period)}`, 'error');
@@ -5795,9 +5799,14 @@ function viewScheduleEditor() {
       if (s.day === dk) slots.push({ student: st, ...s, slotIdx: idx });
     }));
     slots.sort((a,b) => {
-      const periodA = parseInt(a.period) || 0;
-      const periodB = parseInt(b.period) || 0;
-      return periodA - periodB;
+      // Support both old (time) and new (period) format
+      if (a.period && b.period) {
+        return parseInt(a.period) - parseInt(b.period);
+      }
+      if (a.time && b.time) {
+        return a.time.localeCompare(b.time);
+      }
+      return a.period ? -1 : 1; // New format first
     });
     return { key: dk, name: dayNames[i], slots };
   });
@@ -5828,10 +5837,10 @@ function viewScheduleEditor() {
             <div class="day-slots">
               ${d.slots.map(s => `
                 <div class="schedule-slot ${stageClass(s.student.grade)}">
-                  <div class="time">${getPeriodLabel(s.period)}</div>
+                  <div class="time">${s.period ? getPeriodLabel(s.period) : (s.time || 'غير محدد')}</div>
                   <div class="info">
                     <div class="nm">${esc(s.student.name)}</div>
-                    <div class="mt"><span class="stage-pill">${esc(s.student.grade)}</span><span class="text-xs text-muted">${esc(s.room)}</span></div>
+                    <div class="mt"><span class="stage-pill">${esc(s.student.grade)}</span><span class="text-xs text-muted">${s.period ? esc(s.room || 'غرفة ١') : (arNum(s.duration || 30) + ' د • ' + esc(s.room || 'غرفة ١'))}</span></div>
                   </div>
                   <button class="rm-slot" data-action="remove-slot" data-sid="${s.student.id}" data-slot-idx="${s.slotIdx}" title="حذف">${I.close}</button>
                 </div>
