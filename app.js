@@ -720,18 +720,24 @@ function renderTopBar() {
   // For teachers: show dot on settings icon if there are principal notes
   const myRecord = STATE.data.users.find(uu => uu.id === u.id) || u;
   const hasNotes = u.role === 'teacher' && (myRecord.principal_notes || []).length > 0;
+  
+  // Only show school info for principal
+  const showSchoolInfo = u.role === 'principal';
+  
   return `
     <header class="topbar">
       <div class="brand">
         <div class="brand-name">أثر</div>
-        <div class="brand-divider"></div>
-        <div class="school-block">
-          <div class="school-name">${esc(STATE.config.school.name)}</div>
-          <div class="school-principal">
-            ${I.medal}
-            <span>${esc(STATE.config.school.principal.name)} • ${esc(STATE.config.school.principal.title)}</span>
+        ${showSchoolInfo ? `
+          <div class="brand-divider"></div>
+          <div class="school-block">
+            <div class="school-name">${esc(STATE.config.school.name)}</div>
+            <div class="school-principal">
+              ${I.medal}
+              <span>${esc(STATE.config.school.principal.name)} • ${esc(STATE.config.school.principal.title)}</span>
+            </div>
           </div>
-        </div>
+        ` : ''}
       </div>
       <div class="spacer"></div>
       ${hasNotes ? `
@@ -8833,15 +8839,12 @@ async function loadDataFromSupabase() {
       .select('*')
       .eq('school_id', STATE.user.school_id);
     
-    // Teachers only see their own students
-    if (STATE.user.role === 'teacher') {
-      studentsQuery = studentsQuery.eq('teacher_id', STATE.user.id);
-    }
-    
     // Students see only their own record
     if (STATE.user.role === 'student') {
       studentsQuery = studentsQuery.eq('id', STATE.user.id);
     }
+    
+    // Teachers and principal see all students in the school
     
     const { data: students } = await studentsQuery;
     if (students) {
