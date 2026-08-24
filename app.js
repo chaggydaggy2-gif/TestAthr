@@ -721,23 +721,25 @@ function renderTopBar() {
   const myRecord = STATE.data.users.find(uu => uu.id === u.id) || u;
   const hasNotes = u.role === 'teacher' && (myRecord.principal_notes || []).length > 0;
   
-  // Only show school info for principal
-  const showSchoolInfo = u.role === 'principal';
-  
   return `
     <header class="topbar">
       <div class="brand">
         <div class="brand-name">أثر</div>
-        ${showSchoolInfo ? `
-          <div class="brand-divider"></div>
-          <div class="school-block">
-            <div class="school-name">${esc(STATE.config.school.name)}</div>
+        <div class="brand-divider"></div>
+        <div class="school-block">
+          <div class="school-name">${esc(STATE.config.school.name)}</div>
+          ${u.role === 'principal' ? `
             <div class="school-principal">
               ${I.medal}
               <span>${esc(STATE.config.school.principal.name)} • ${esc(STATE.config.school.principal.title)}</span>
             </div>
-          </div>
-        ` : ''}
+          ` : u.role === 'teacher' ? `
+            <div class="school-principal">
+              ${I.user}
+              <span>${esc(u.name)} • ${esc(u.title || 'معلمة')}</span>
+            </div>
+          ` : ''}
+        </div>
       </div>
       <div class="spacer"></div>
       ${hasNotes ? `
