@@ -1030,7 +1030,7 @@ async function logout() {
    ========================================================= */
 function viewTeacherDashboard() {
   const me = STATE.user;
-  const myStudents = STATE.data.students.filter(s => s.teacher_id === me.id && !s.archived); // Fixed: use teacher_id
+  const myStudents = STATE.data.students.filter(s => !s.archived); // Show ALL students, not just mine
   const todayDate = new Date(); // Use current date instead of MOCK.today
   const params = new URLSearchParams((location.hash.split('?')[1]) || '');
   const requestedDay = params.get('d');
@@ -1206,7 +1206,7 @@ function viewTeacherStudents() {
   const params = new URLSearchParams((location.hash.split('?')[1]) || '');
   const q = (params.get('q') || '').trim();
   const allMine = STATE.data.students
-    .filter(s => s.teacher_id === me.id && !s.archived)
+    .filter(s => !s.archived) // Show ALL students, not just mine
     .sort((a, b) => gradeSortKey(a.grade) - gradeSortKey(b.grade));
 
   const matches = (s) => {
@@ -1970,7 +1970,7 @@ function attendanceCard(st) {
 
 function viewAttendance() {
   const me = STATE.user;
-  const myStudents = STATE.data.students.filter(s => s.teacherId === me.id && !s.archived);
+  const myStudents = STATE.data.students.filter(s => !s.archived); // Show ALL students
   return `
     <div class="page-head">
       <div>
@@ -2123,7 +2123,7 @@ function viewActivities() {
    ========================================================= */
 function viewActivityCreate() {
   const me = STATE.user;
-  const myStudents = STATE.data.students.filter(s => s.teacherId === me.id && !s.archived);
+  const myStudents = STATE.data.students.filter(s => !s.archived); // Show ALL students
   const params = new URLSearchParams((location.hash.split('?')[1]) || '');
   const presetStudent = params.get('student');
   const presetType = params.get('type') || 'home';
@@ -3028,7 +3028,7 @@ function chatCard({ student, otherParty, otherTitle, role }) {
           return `
             <div class="msg ${mine ? 'mine' : 'theirs'} ${isPrincipalMsg ? 'principal-msg' : ''}"
                  style="align-self:${mine ? 'flex-end' : 'flex-start'}">
-              ${isPrincipalMsg && !mine ? `<div class="msg-sender">المدير</div>` : ''}
+              ${isPrincipalMsg && !mine ? `<div class="msg-sender">${esc(STATE.config.school.principal.name)}</div>` : ''}
               <div class="msg-bubble" style="${
                 isPrincipalMsg && mine
                   ? 'background:var(--critical);color:#fff;'
@@ -3060,7 +3060,7 @@ function chatCard({ student, otherParty, otherTitle, role }) {
       ${canMessage ? `
         <form class="chat-input ${isPrincipal ? 'principal-input' : ''}" data-form="send-message" data-from="${fromKey}" data-sid="${student.id}">
           ${isPrincipal ? `<div class="principal-input-badge">${I.medal}</div>` : ''}
-          <input name="body" placeholder="${isPrincipal ? 'رسالة من المدير...' : 'اكتبي رسالة...'}" autocomplete="off" required>
+          <input name="body" placeholder="${isPrincipal ? `رسالة من ${STATE.config.school.principal.name}...` : 'اكتبي رسالة...'}" autocomplete="off" required>
           <button type="submit" class="btn ${isPrincipal ? 'accent' : ''}">${I.arrow}</button>
         </form>
       ` : `
@@ -3404,7 +3404,7 @@ function libraryCard(it, role) {
    ========================================================= */
 function viewProgressTeacher() {
   const me = STATE.user;
-  const myStudents = STATE.data.students.filter(s => s.teacherId === me.id && !s.archived);
+  const myStudents = STATE.data.students.filter(s => !s.archived); // Show ALL students
   const allProgress = myStudents.map(st => {
     const plan = STATE.data.plans.find(p => p.studentId === st.id);
     const avg = plan ? Math.round(plan.progress.reduce((a,p)=>a+p.current,0)/plan.progress.length) : 0;
@@ -3508,7 +3508,7 @@ function viewSettings(role) {
   const params = new URLSearchParams((location.hash.split('?')[1]) || '');
   const tab = params.get('tab') || 'profile';
 
-  const archivedCount = STATE.data.students.filter(s => s.teacherId === STATE.user.id && s.archived).length;
+  const archivedCount = STATE.data.students.filter(s => s.archived).length; // Show ALL archived students
   // Get notes from the teacher's own record in STATE.data.users
   const myRecord = STATE.data.users.find(uu => uu.id === u.id) || u;
   const notesCount = (myRecord.principal_notes || []).length;
@@ -3775,7 +3775,7 @@ function renderSettingsScheduleLink() {
 function renderSettingsArchive() {
   const me = STATE.user;
   const archived = STATE.data.students
-    .filter(s => s.teacherId === me.id && s.archived)
+    .filter(s => s.archived) // Show ALL archived students
     .sort((a,b) => (b.archivedAt || '').localeCompare(a.archivedAt || ''));
   return `
     <div class="card">
@@ -3830,7 +3830,7 @@ function renderSettingsDanger() {
       <div class="card-title"><h3>عن المنصة</h3></div>
       <div class="stack gap-sm text-sm">
         <div class="row between"><span class="text-muted">الإصدار</span><span class="text-bold">أثر v0.7 — نموذج</span></div>
-        <div class="row between"><span class="text-muted">طالباتي</span><span class="text-bold">${arNum(STATE.data.students.filter(s => s.teacherId === STATE.user.id).length)}</span></div>
+        <div class="row between"><span class="text-muted">الطالبات</span><span class="text-bold">${arNum(STATE.data.students.filter(s => !s.archived).length)}</span></div>
         <div class="row between"><span class="text-muted">جلسات سجّلتها</span><span class="text-bold">${arNum(STATE.data.sessionLogs.filter(l => l.teacherId === STATE.user.id).length)}</span></div>
         <div class="row between"><span class="text-muted">حجم البيانات المحلية</span><span class="text-bold">~${arNum(Math.round((localStorage.getItem(STORAGE_KEY) || '').length / 1024))} KB</span></div>
       </div>
@@ -4455,7 +4455,7 @@ document.addEventListener('click', async (e) => {
           <h2>ملاحظة لـ ${esc(teacher.name)}</h2>
           <button class="x" data-action="close-modal">${I.close}</button>
         </div>
-        <p class="text-sm text-muted mb-md">ستظهر هذه الملاحظة في صفحة المعلمة ضمن قسم "ملاحظات المدير".</p>
+        <p class="text-sm text-muted mb-md">ستظهر هذه الملاحظة في صفحة المعلمة ضمن قسم "ملاحظات المديرة".</p>
         <form data-form="save-teacher-note" data-id="${tid}">
           <div class="field">
             <label>نص الملاحظة</label>
@@ -5282,7 +5282,7 @@ document.addEventListener('submit', (e) => {
     
     // Check time conflicts across this teacher's students for the same day
     const teacherId = STATE.user.id;
-    const myStudents = STATE.data.students.filter(s => s.teacher_id === teacherId); // Fixed: use teacher_id
+    const myStudents = STATE.data.students.filter(s => !s.archived); // Show ALL students for time conflict check
     const toMin = (t) => { const [h,m] = t.split(':').map(Number); return h*60 + m; };
     const newStart = toMin(time); const newEnd = newStart + duration;
     let conflict = null;
@@ -5762,7 +5762,7 @@ function openEditStudentModal(student) {
 
 function viewScheduleEditor() {
   const me = STATE.user;
-  const myStudents = STATE.data.students.filter(s => s.teacherId === me.id && !s.archived);
+  const myStudents = STATE.data.students.filter(s => !s.archived); // Show ALL students
   const allKeys  = ['sun','mon','tue','wed','thu','fri','sat'];
   const allNames = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
   const dayKeys  = STATE.config.workingDays || allKeys.slice(0,5);
@@ -5825,7 +5825,7 @@ function viewScheduleEditor() {
 
 function openAddSlotModal(presetDay) {
   const me = STATE.user;
-  const myStudents = STATE.data.students.filter(s => s.teacher_id === me.id && !s.archived); // Fixed: use teacher_id
+  const myStudents = STATE.data.students.filter(s => !s.archived); // Show ALL students
   const allKeys  = ['sun','mon','tue','wed','thu','fri','sat'];
   const allNames = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
   const dayKeys = STATE.config.workingDays || allKeys.slice(0,5);
@@ -7383,7 +7383,7 @@ function openSendToStudentModal(libraryId) {
     return;
   }
   
-  const myStudents = STATE.data.students.filter(s => s.teacher_id === STATE.user.id && !s.archived);
+  const myStudents = STATE.data.students.filter(s => !s.archived); // Show ALL students
   console.log('📚 Opening send modal for:', item.title);
   console.log('👥 My students:', myStudents.length, myStudents);
   console.log('👤 Current user:', STATE.user.id, STATE.user.role);
@@ -7732,7 +7732,7 @@ function viewPrincipalDashboard() {
     <div class="page-head">
       <div>
         <h1>لوحة المديرة</h1>
-        <div class="sub">مرحباً ${esc(STATE.user.name)}</div>
+        <div class="sub">مرحباً ${esc(STATE.config.school.principal.name)}</div>
       </div>
     </div>
 
@@ -7915,7 +7915,7 @@ function viewPrincipalTeachers() {
               <!-- Principal notes for this teacher -->
               <div class="principal-notes-section" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--hair)">
                 <div class="row between mb-sm">
-                  <div class="text-xs text-bold text-muted" style="letter-spacing:0.06em;text-transform:uppercase">ملاحظات المدير</div>
+                  <div class="text-xs text-bold text-muted" style="letter-spacing:0.06em;text-transform:uppercase">ملاحظات المديرة</div>
                   <button class="btn soft sm" data-action="add-teacher-note" data-id="${t.id}">${I.plus}<span>إضافة ملاحظة</span></button>
                 </div>
                 ${notes.length ? `
@@ -8787,8 +8787,8 @@ document.addEventListener('submit', async (e) => {
         errorMsg = `⚠️ تم تسجيل الدخول بنجاح، لكن لم يتم العثور على حساب لهذا البريد.
 
 هل أنت:
-• المدير؟ → شغّل ملف FRESH-START.sql في Supabase
-• طالب؟ → يجب أن يقوم المدير/المعلمة بإنشاء حسابك أولاً
+• المديرة؟ → شغّل ملف FRESH-START.sql في Supabase
+• طالب؟ → يجب أن تقوم المديرة/المعلمة بإنشاء حسابك أولاً
 
 البريد المستخدم: ${email}`;
       } else if (error.message && error.message.includes('Invalid login credentials')) {
@@ -9088,7 +9088,7 @@ function setupRealtimeSubscriptions() {
               return `
                 <div class="msg ${mine ? 'mine' : 'theirs'} ${isPrincipalMsg ? 'principal-msg' : ''}"
                      style="align-self:${mine ? 'flex-end' : 'flex-start'}">
-                  ${isPrincipalMsg && !mine ? `<div class="msg-sender">المدير</div>` : ''}
+                  ${isPrincipalMsg && !mine ? `<div class="msg-sender">${esc(STATE.config.school.principal.name)}</div>` : ''}
                   <div class="msg-bubble" style="${
                     isPrincipalMsg && mine
                       ? 'background:var(--critical);color:#fff;'
