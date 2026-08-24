@@ -61,6 +61,18 @@ function arNum(n) {
   // Use Latin (Western Arabic) numerals — cleaner with the editorial typography
   return String(n);
 }
+function getPeriodLabel(period) {
+  const labels = {
+    '1': 'الحصة الأولى',
+    '2': 'الحصة الثانية',
+    '3': 'الحصة الثالثة',
+    '4': 'الحصة الرابعة',
+    '5': 'الحصة الخامسة',
+    '6': 'الحصة السادسة',
+    '7': 'الحصة السابعة'
+  };
+  return labels[period] || `الحصة ${period}`;
+}
 function termWeek(iso) {
   const start = new Date(STATE.config?.termStart || '2026-01-04');
   const cur = new Date(iso);
@@ -1056,7 +1068,12 @@ function viewTeacherDashboard() {
     myStudents.forEach(st => (st.schedule || []).forEach(slot => {
       if (slot.day === dk) out.push({ student: st, ...slot });
     }));
-    return out.sort((a,b) => a.time.localeCompare(b.time));
+    return out.sort((a,b) => {
+      // Sort by period number
+      const periodA = parseInt(a.period) || 0;
+      const periodB = parseInt(b.period) || 0;
+      return periodA - periodB;
+    });
   };
   const todaysSessions = sessionsOnDay(selectedKey);
 
@@ -1105,8 +1122,8 @@ function viewTeacherDashboard() {
         ${todaysSessions.length ? todaysSessions.map(s => `
           <a class="session" href="#/teacher/student/${s.student.id}" data-route="#/teacher/student/${s.student.id}">
             <div class="time">
-              <div class="t">${esc(s.time)}</div>
-              <div class="dur">${s.duration} د</div>
+              <div class="t">${getPeriodLabel(s.period)}</div>
+              <div class="dur">${esc(s.room || 'غرفة ١')}</div>
             </div>
             <div class="line"></div>
             ${avatar(s.student, 'lg')}
@@ -5284,29 +5301,25 @@ document.addEventListener('submit', (e) => {
     e.preventDefault();
     const fd = new FormData(fAddSlot);
     const sid = fd.get('studentId'); const day = fd.get('day');
-    if (!sid || !day) { toast('أكملي البيانات', 'warn'); return; }
-    const time = fd.get('time');
-    const duration = Number(fd.get('duration')) || 30;
+    const period = fd.get('period'); // رقم الحصة
+    if (!sid || !day || !period) { toast('أكملي البيانات', 'warn'); return; }
     
-    // Check time conflicts across this teacher's students for the same day
-    const teacherId = STATE.user.id;
-    const myStudents = STATE.data.students.filter(s => !s.archived); // Show ALL students for time conflict check
-    const toMin = (t) => { const [h,m] = t.split(':').map(Number); return h*60 + m; };
-    const newStart = toMin(time); const newEnd = newStart + duration;
+    // Check period conflicts across all students for the same day
+    const myStudents = STATE.data.students.filter(s => !s.archived);
     let conflict = null;
     myStudents.forEach(s => (s.schedule || []).forEach(slot => {
       if (slot.day !== day) return;
-      const a = toMin(slot.time); const b = a + (slot.duration || 30);
-      if (newStart < b && newEnd > a) conflict = { student: s, slot };
+      if (slot.period === period) conflict = { student: s, slot };
     }));
     if (conflict) {
-      toast(`تعارض مع جلسة ${conflict.student.name} الساعة ${conflict.slot.time}`, 'error');
+      toast(`تعارض مع جلسة ${conflict.student.name} في ${getPeriodLabel(conflict.slot.period)}`, 'error');
       return;
     }
     const st = studentBy(sid);
     if (st) {
       const newSlot = {
-        day, time, duration,
+        day,
+        period, // رقم الحصة بدلاً من time و duration
         room: (fd.get('room') || 'غرفة ١').trim()
       };
       
@@ -5781,7 +5794,11 @@ function viewScheduleEditor() {
     myStudents.forEach(st => (st.schedule || []).forEach((s, idx) => {
       if (s.day === dk) slots.push({ student: st, ...s, slotIdx: idx });
     }));
-    slots.sort((a,b) => a.time.localeCompare(b.time));
+    slots.sort((a,b) => {
+      const periodA = parseInt(a.period) || 0;
+      const periodB = parseInt(b.period) || 0;
+      return periodA - periodB;
+    });
     return { key: dk, name: dayNames[i], slots };
   });
 
@@ -5811,10 +5828,10 @@ function viewScheduleEditor() {
             <div class="day-slots">
               ${d.slots.map(s => `
                 <div class="schedule-slot ${stageClass(s.student.grade)}">
-                  <div class="time">${esc(s.time)}</div>
+                  <div class="time">${getPeriodLabel(s.period)}</div>
                   <div class="info">
                     <div class="nm">${esc(s.student.name)}</div>
-                    <div class="mt"><span class="stage-pill">${esc(s.student.grade)}</span><span class="text-xs text-muted">${arNum(s.duration)} د • ${esc(s.room)}</span></div>
+                    <div class="mt"><span class="stage-pill">${esc(s.student.grade)}</span><span class="text-xs text-muted">${esc(s.room)}</span></div>
                   </div>
                   <button class="rm-slot" data-action="remove-slot" data-sid="${s.student.id}" data-slot-idx="${s.slotIdx}" title="حذف">${I.close}</button>
                 </div>
@@ -5866,13 +5883,18 @@ function openAddSlotModal(presetDay) {
         </div>
       </div>
       <div class="row" style="gap:12px;flex-wrap:wrap">
-        <div class="field" style="flex:1;min-width:120px">
-          <label>الوقت</label>
-          <input name="time" type="time" value="10:00" required>
-        </div>
-        <div class="field" style="flex:1;min-width:100px">
-          <label>المدة (د)</label>
-          <input name="duration" type="number" value="30" min="15" max="120">
+        <div class="field" style="flex:1;min-width:180px">
+          <label>رقم الحصة</label>
+          <select name="period" required>
+            <option value="">اختاري الحصة...</option>
+            <option value="1">الحصة الأولى</option>
+            <option value="2">الحصة الثانية</option>
+            <option value="3">الحصة الثالثة</option>
+            <option value="4">الحصة الرابعة</option>
+            <option value="5">الحصة الخامسة</option>
+            <option value="6">الحصة السادسة</option>
+            <option value="7">الحصة السابعة</option>
+          </select>
         </div>
         <div class="field" style="flex:1;min-width:120px">
           <label>الغرفة</label>
