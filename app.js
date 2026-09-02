@@ -8339,12 +8339,13 @@ function openAddFollowupModal(sid) {
       <div class="field-group">
         <label class="section-label">🛠️ الوسائل المستخدمة</label>
         <div class="checkbox-group">
-          <label class="checkbox-label"><input type="checkbox" name="tools" value="آيباد"> آيباد</label>
-          <label class="checkbox-label"><input type="checkbox" name="tools" value="بطاقات مصورة"> بطاقات مصورة</label>
-          <label class="checkbox-label"><input type="checkbox" name="tools" value="فقاعات صابون"> فقاعات صابون</label>
-          <label class="checkbox-label"><input type="checkbox" name="tools" value="أدوات تركيز وانتباه"> أدوات تركيز وانتباه</label>
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="بطاقات صور"> بطاقات صور</label>
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="قصص"> قصص</label>
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="سبورة"> سبورة</label>
           <label class="checkbox-label"><input type="checkbox" name="tools" value="مجسمات"> مجسمات</label>
-          <label class="checkbox-label"><input type="checkbox" name="tools" value="أخرى"> أخرى</label>
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="آيباد"> آيباد</label>
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="مرآة"> مرآة</label>
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="العاب تركيز وانتباه"> العاب تركيز وانتباه</label>
         </div>
       </div>
 
@@ -8435,7 +8436,7 @@ function openEditFollowupModal(id) {
       <div class="field-group">
         <label class="section-label">🛠️ الوسائل المستخدمة</label>
         <div class="checkbox-group">
-          ${['آيباد', 'بطاقات مصورة', 'فقاعات صابون', 'أدوات تركيز وانتباه', 'مجسمات', 'أخرى'].map(tool => `
+          ${['بطاقات صور', 'قصص', 'سبورة', 'مجسمات', 'آيباد', 'مرآة', 'العاب تركيز وانتباه'].map(tool => `
             <label class="checkbox-label">
               <input type="checkbox" name="tools" value="${tool}" ${followup.tools?.includes(tool) ? 'checked' : ''}> ${tool}
             </label>

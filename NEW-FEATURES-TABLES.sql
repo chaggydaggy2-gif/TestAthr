@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS student_followups (
   date_from DATE NOT NULL,
   date_to DATE NOT NULL,
   
-  -- الأهداف من الخطة الفردية
-  goal_1_id UUID REFERENCES plan_goals(id) ON DELETE SET NULL,
-  goal_2_id UUID REFERENCES plan_goals(id) ON DELETE SET NULL,
+  -- الأهداف من الخطة الفردية (stored as text for now)
+  goal_1_id TEXT,
+  goal_2_id TEXT,
   
   -- الأهداف اليدوية
   custom_goal_1 TEXT,
