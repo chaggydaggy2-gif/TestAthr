@@ -122,6 +122,10 @@ function persistState() {
     sessionTools: STATE.data.sessionTools,
     feedbackTemplates: STATE.data.feedbackTemplates,
     config: STATE.config,
+    // NEW FEATURES DATA
+    studentFollowups: STATE.data.studentFollowups,
+    auditoryMemoryTests: STATE.data.auditoryMemoryTests,
+    initialReports: STATE.data.initialReports,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
 }
@@ -146,6 +150,9 @@ function initData() {
     sessionTools: [],
     messages: [],
     feedbackTemplates: [],
+    studentFollowups: [],        // 📈 متابعة الطالبة
+    auditoryMemoryTests: [],     // 🧠 اختبار الذاكرة السمعية
+    initialReports: [],          // 📄 التقرير المبدئي
   };
   
   // Set school config from default
@@ -173,6 +180,10 @@ function initData() {
     if (saved.sessionTools) STATE.data.sessionTools = saved.sessionTools;
     if (saved.feedbackTemplates) STATE.data.feedbackTemplates = saved.feedbackTemplates;
     if (saved.config) STATE.config = { ...STATE.config, ...saved.config, school: { ...STATE.config.school, ...(saved.config.school || {}) } };
+    // NEW FEATURES DATA
+    if (saved.studentFollowups) STATE.data.studentFollowups = saved.studentFollowups;
+    if (saved.auditoryMemoryTests) STATE.data.auditoryMemoryTests = saved.auditoryMemoryTests;
+    if (saved.initialReports) STATE.data.initialReports = saved.initialReports;
   }
 }
 
@@ -1406,16 +1417,22 @@ function viewStudentProfile(id, role) {
       <div class="tab ${activeTab==='forms'?'active':''}"    data-tab="forms">📋 النماذج</div>
       <div class="tab ${activeTab==='plan'?'active':''}"     data-tab="plan">✨ الخطة الفردية</div>
       <div class="tab ${activeTab==='follow'?'active':''}"   data-tab="follow">📈 متابعة الطالبة</div>
+      <div class="tab ${activeTab==='memory'?'active':''}"   data-tab="memory">🧠 اختبار الذاكرة السمعية</div>
+      <div class="tab ${activeTab==='report'?'active':''}"   data-tab="report">📄 التقرير المبدئي</div>
+      <div class="tab ${activeTab==='assessment'?'active':''}" data-tab="assessment">📊 التقييم</div>
       <div class="tab ${activeTab==='messages'?'active':''}" data-tab="messages">💬 رسائل ولي الأمر${(() => {
         const u = STATE.data.messages.filter(m => m.studentId === st.id && m.from === 'parent' && !m.read).length;
         return u ? ` <span class="tab-badge">${arNum(u)}</span>` : '';
       })()}</div>
     </div>
 
-    <div data-tab-content="forms"    ${activeTab!=='forms'?'class="hide"':''}>${renderFormsTab(st)}</div>
-    <div data-tab-content="plan"     ${activeTab!=='plan'?'class="hide"':''}>${renderPlanTab(st, plan)}</div>
-    <div data-tab-content="follow"   ${activeTab!=='follow'?'class="hide"':''}>${renderFollowTab(st, plan)}</div>
-    <div data-tab-content="messages" ${activeTab!=='messages'?'class="hide"':''}>${renderMessagesTab(st)}</div>
+    <div data-tab-content="forms"      ${activeTab!=='forms'?'class="hide"':''}>${renderFormsTab(st)}</div>
+    <div data-tab-content="plan"       ${activeTab!=='plan'?'class="hide"':''}>${renderPlanTab(st, plan)}</div>
+    <div data-tab-content="follow"     ${activeTab!=='follow'?'class="hide"':''}>${renderFollowTab(st, plan)}</div>
+    <div data-tab-content="memory"     ${activeTab!=='memory'?'class="hide"':''}>${renderMemoryTestTab(st)}</div>
+    <div data-tab-content="report"     ${activeTab!=='report'?'class="hide"':''}>${renderInitialReportTab(st)}</div>
+    <div data-tab-content="assessment" ${activeTab!=='assessment'?'class="hide"':''}>${renderAssessmentTab(st)}</div>
+    <div data-tab-content="messages"   ${activeTab!=='messages'?'class="hide"':''}>${renderMessagesTab(st)}</div>
   `;
 }
 
@@ -1783,6 +1800,10 @@ function renderFollowTab(st, plan) {
   const logs = STATE.data.sessionLogs
     .filter(l => l.studentId === st.id)
     .sort((a,b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+  
+  const followups = STATE.data.studentFollowups.filter(f => f.studentId === st.id)
+    .sort((a,b) => b.date_from.localeCompare(a.date_from));
+  
   const stats = { mastered: 0, partial: 0, notMastered: 0 };
   logs.forEach(l => l.goalEvaluations.forEach(g => {
     if (g.status === 'mastered') stats.mastered++;
@@ -1797,6 +1818,20 @@ function renderFollowTab(st, plan) {
       ${statCard('mint',  I.checkCircle, arNum(stats.mastered),    'مهارات أُتقنت')}
       ${statCard('amber', I.bolt,         arNum(stats.partial),     'إتقان جزئي')}
       ${statCard('rose',  I.close,        arNum(stats.notMastered), 'لم تُتقن')}
+    </div>
+
+    <!-- قسم المتابعة المحسّن -->
+    <div class="card mb-md">
+      <div class="card-title">
+        <h3>📈 متابعة الأهداف</h3>
+        <button class="btn soft sm" data-action="add-followup" data-sid="${st.id}">${I.plus}<span>إضافة متابعة</span></button>
+      </div>
+      
+      ${followups.length ? `
+        <div class="list-section">
+          ${followups.map(followup => renderFollowupCard(followup, plan)).join('')}
+        </div>
+      ` : emptyState('📈', 'لا توجد متابعات بعد', 'اضغطي «إضافة متابعة» لتسجيل أول متابعة للأهداف')}
     </div>
 
     <div class="card">
@@ -1821,6 +1856,46 @@ function renderFollowTab(st, plan) {
           ` : ''}
         `;
       })() : emptyState(I.calendar, 'لا توجد جلسات بعد', 'اضغطي «إضافة جلسة» لتسجيل أول جلسة.')}
+    </div>
+  `;
+}
+
+function renderFollowupCard(followup, plan) {
+  const teacher = userBy(followup.teacher_id);
+  const goal1 = followup.goal_1_id ? plan?.goals?.find(g => g.id === followup.goal_1_id) : null;
+  const goal2 = followup.goal_2_id ? plan?.goals?.find(g => g.id === followup.goal_2_id) : null;
+  const tools = followup.tools || [];
+  
+  return `
+    <div class="followup-card">
+      <div class="row between mb-sm">
+        <div class="text-bold">📅 ${fmtDate(followup.date_from)} - ${fmtDate(followup.date_to)}</div>
+        <div class="text-sm text-muted">بواسطة: ${esc(teacher?.name || '')}</div>
+      </div>
+      
+      <div class="followup-goals mb-sm">
+        <div class="text-sm text-muted mb-xs">الأهداف المستهدفة:</div>
+        ${goal1 ? `<div class="goal-pill">🎯 ${esc(goal1.text)}</div>` : ''}
+        ${goal2 ? `<div class="goal-pill">🎯 ${esc(goal2.text)}</div>` : ''}
+        ${followup.custom_goal_1 ? `<div class="goal-pill custom">${followup.custom_goal_1_type ? `[${followup.custom_goal_1_type}]` : ''} ${esc(followup.custom_goal_1)}</div>` : ''}
+        ${followup.custom_goal_2 ? `<div class="goal-pill custom">${followup.custom_goal_2_type ? `[${followup.custom_goal_2_type}]` : ''} ${esc(followup.custom_goal_2)}</div>` : ''}
+      </div>
+      
+      ${tools.length ? `
+        <div class="followup-tools mb-sm">
+          <div class="text-sm text-muted mb-xs">الوسائل المستخدمة:</div>
+          <div class="row wrap" style="gap:6px">
+            ${tools.map(t => `<span class="tool-tag-sm">${esc(t)}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+      
+      ${followup.notes ? `<div class="followup-notes text-sm">${esc(followup.notes)}</div>` : ''}
+      
+      <div class="row" style="gap:8px;margin-top:12px">
+        <button class="btn ghost xs" data-action="edit-followup" data-id="${followup.id}">${I.edit}<span>تعديل</span></button>
+        <button class="btn danger-soft xs" data-action="delete-followup" data-id="${followup.id}">${I.trash}<span>حذف</span></button>
+      </div>
     </div>
   `;
 }
@@ -1960,6 +2035,111 @@ function sparklineSvg(logs) {
       <path d="${d}" stroke="#6E5BC7" stroke-width="2" fill="none"/>
       ${pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#6E5BC7"/>`).join('')}
     </svg>
+  `;
+}
+
+/* =========================================================
+   ATTENDANCE
+   ========================================================= */
+
+/* =========================================================
+   NEW FEATURES: متابعة الطالبة، الذاكرة السمعية، التقرير المبدئي
+   ========================================================= */
+
+// 1️⃣ متابعة الطالبة المحسّنة
+function renderMemoryTestTab(st) {
+  const tests = STATE.data.auditoryMemoryTests.filter(t => t.studentId === st.id)
+    .sort((a, b) => new Date(b.tested_at) - new Date(a.tested_at));
+  
+  return `
+    <div class="card">
+      <div class="card-title">
+        <h3>🧠 اختبار الذاكرة السمعية</h3>
+        <p class="text-sm text-muted">اختبارات الذاكرة السمعية للطالبة</p>
+      </div>
+      
+      <div class="grid cols-2 mb-md">
+        <button class="btn lg" data-action="add-memory-test" data-sid="${st.id}" data-type="1">
+          <span>📝 النموذج الأول</span>
+        </button>
+        <button class="btn lg" data-action="add-memory-test" data-sid="${st.id}" data-type="2">
+          <span>📝 النموذج الثاني</span>
+        </button>
+      </div>
+
+      ${tests.length ? `
+        <div class="list-section">
+          <h4 class="list-section-title">الاختبارات السابقة (${arNum(tests.length)})</h4>
+          ${tests.map(test => `
+            <div class="list-item" data-action="view-memory-test" data-id="${test.id}" style="cursor:pointer">
+              <div class="row between" style="align-items:center">
+                <div>
+                  <div class="text-bold">النموذج ${test.test_type === 1 ? 'الأول' : 'الثاني'}</div>
+                  <div class="text-sm text-muted">${fmtDate(test.tested_at)} · النتيجة: ${arNum(test.score || 0)}/${arNum(test.total_score || 0)}</div>
+                </div>
+                <div class="text-xl">${test.score >= (test.total_score * 0.8) ? '✅' : test.score >= (test.total_score * 0.5) ? '⚠️' : '❌'}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : emptyState('🧠', 'لا توجد اختبارات بعد', 'اضغطي على أحد النماذج لإجراء اختبار جديد')}
+    </div>
+  `;
+}
+
+// 2️⃣ التقرير المبدئي
+function renderInitialReportTab(st) {
+  const reports = STATE.data.initialReports.filter(r => r.studentId === st.id)
+    .sort((a, b) => new Date(b.report_date) - new Date(a.report_date));
+  
+  return `
+    <div class="card">
+      <div class="card-title">
+        <h3>📄 التقرير المبدئي</h3>
+        <button class="btn sm" data-action="add-initial-report" data-sid="${st.id}">${I.plus}<span>تقرير جديد</span></button>
+      </div>
+
+      ${reports.length ? `
+        <div class="list-section">
+          <h4 class="list-section-title">التقارير السابقة (${arNum(reports.length)})</h4>
+          ${reports.map(report => `
+            <div class="list-item">
+              <div class="row between" style="align-items:center">
+                <div style="flex:1">
+                  <div class="text-bold">تقرير بتاريخ ${fmtDate(report.report_date)}</div>
+                  <div class="text-sm text-muted">
+                    ${report.status === 'final' ? '✅ نهائي' : '📝 مسودة'} · 
+                    أُنشئ ${fmtRelative(report.created_at)}
+                  </div>
+                </div>
+                <div class="row" style="gap:8px">
+                  <button class="btn ghost sm" data-action="view-initial-report" data-id="${report.id}">${I.eye}<span>عرض</span></button>
+                  <button class="btn ghost sm" data-action="edit-initial-report" data-id="${report.id}">${I.edit}<span>تعديل</span></button>
+                  <button class="btn ghost sm" data-action="print-initial-report" data-id="${report.id}">${I.download}<span>طباعة</span></button>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : emptyState('📄', 'لا توجد تقارير بعد', 'اضغطي «تقرير جديد» لإنشاء أول تقرير مبدئي')}
+    </div>
+  `;
+}
+
+// 3️⃣ التقييم (سيتم تصحيح الأخطاء الإملائية لاحقاً)
+function renderAssessmentTab(st) {
+  // سيتم إضافة المحتوى بعد استلام النصوص المصححة من العميل
+  return `
+    <div class="card">
+      <div class="card-title">
+        <h3>📊 التقييم</h3>
+        <p class="text-sm text-muted">تقييم شامل لأداء الطالبة</p>
+      </div>
+      <div class="text-center text-muted py-lg">
+        <p>قسم التقييم قيد التطوير</p>
+        <p class="text-sm">سيتم إضافة المحتوى بعد استلام النصوص المصححة</p>
+      </div>
+    </div>
   `;
 }
 
@@ -4584,6 +4764,85 @@ document.addEventListener('click', async (e) => {
       }
       return;
     }
+    
+    // ========== NEW FEATURES HANDLERS ==========
+    
+    // متابعة الطالبة
+    if (a === 'add-followup') {
+      const sid = action.getAttribute('data-sid');
+      openAddFollowupModal(sid);
+      return;
+    }
+    if (a === 'edit-followup') {
+      const id = action.getAttribute('data-id');
+      openEditFollowupModal(id);
+      return;
+    }
+    if (a === 'delete-followup') {
+      const id = action.getAttribute('data-id');
+      if (!confirm('حذف هذه المتابعة؟')) return;
+      
+      STATE.data.studentFollowups = STATE.data.studentFollowups.filter(f => f.id !== id);
+      
+      // Delete from Supabase
+      (async () => {
+        try {
+          const { error } = await window.supabaseClient
+            .from('student_followups')
+            .delete()
+            .eq('id', id);
+          
+          if (error) throw error;
+          console.log('✅ Followup deleted from Supabase:', id);
+        } catch (error) {
+          console.error('Error deleting followup:', error);
+          toast('حدث خطأ في حذف المتابعة', 'error');
+        }
+      })();
+      
+      persistState();
+      toast('تم حذف المتابعة');
+      handleRoute();
+      return;
+    }
+    
+    // اختبار الذاكرة السمعية
+    if (a === 'add-memory-test') {
+      const sid = action.getAttribute('data-sid');
+      const type = action.getAttribute('data-type');
+      openMemoryTestModal(sid, parseInt(type));
+      return;
+    }
+    if (a === 'view-memory-test') {
+      const id = action.getAttribute('data-id');
+      viewMemoryTestModal(id);
+      return;
+    }
+    
+    // التقرير المبدئي
+    if (a === 'add-initial-report') {
+      const sid = action.getAttribute('data-sid');
+      openInitialReportModal(sid);
+      return;
+    }
+    if (a === 'view-initial-report') {
+      const id = action.getAttribute('data-id');
+      viewInitialReportModal(id);
+      return;
+    }
+    if (a === 'edit-initial-report') {
+      const id = action.getAttribute('data-id');
+      openInitialReportModal(null, id);
+      return;
+    }
+    if (a === 'print-initial-report') {
+      const id = action.getAttribute('data-id');
+      printInitialReport(id);
+      return;
+    }
+    
+    // ========== END NEW FEATURES HANDLERS ==========
+    
     if (a === 'complete-activity') {
       const aid = action.getAttribute('data-aid');
       const act = STATE.data.activities.find(x => x.id === aid);
@@ -5597,6 +5856,295 @@ document.addEventListener('submit', (e) => {
     })();
     return;
   }
+
+  // ========== NEW FEATURES FORM HANDLERS ==========
+  
+  // متابعة الطالبة - إضافة
+  const fAddFollowup = e.target.closest('[data-form="add-followup"]');
+  if (fAddFollowup) {
+    e.preventDefault();
+    const sid = fAddFollowup.getAttribute('data-sid');
+    const fd = new FormData(fAddFollowup);
+    
+    // Get selected tools
+    const tools = Array.from(fAddFollowup.querySelectorAll('input[name="tools"]:checked'))
+      .map(cb => cb.value);
+    
+    const followupData = {
+      id: 'fup-' + Date.now(),
+      studentId: sid,
+      teacher_id: STATE.user.id,
+      date_from: fd.get('date_from'),
+      date_to: fd.get('date_to'),
+      goal_1_id: fd.get('goal_1_id') || null,
+      goal_2_id: fd.get('goal_2_id') || null,
+      custom_goal_1: fd.get('custom_goal_1') || null,
+      custom_goal_1_type: fd.get('custom_goal_1_type') || null,
+      custom_goal_2: fd.get('custom_goal_2') || null,
+      custom_goal_2_type: fd.get('custom_goal_2_type') || null,
+      tools: tools,
+      notes: fd.get('notes') || '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Save to Supabase
+    (async () => {
+      try {
+        const { data, error } = await window.supabaseClient
+          .from('student_followups')
+          .insert({
+            student_id: sid,
+            teacher_id: STATE.user.id,
+            date_from: followupData.date_from,
+            date_to: followupData.date_to,
+            goal_1_id: followupData.goal_1_id,
+            goal_2_id: followupData.goal_2_id,
+            custom_goal_1: followupData.custom_goal_1,
+            custom_goal_1_type: followupData.custom_goal_1_type,
+            custom_goal_2: followupData.custom_goal_2,
+            custom_goal_2_type: followupData.custom_goal_2_type,
+            tools: JSON.stringify(tools),
+            notes: followupData.notes
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        
+        followupData.id = data.id;
+        STATE.data.studentFollowups.unshift(followupData);
+        persistState();
+        closeModal();
+        toast('تم حفظ المتابعة ✅');
+        handleRoute();
+      } catch (error) {
+        console.error('Error saving followup:', error);
+        toast('حدث خطأ في حفظ المتابعة', 'error');
+      }
+    })();
+    return;
+  }
+
+  // متابعة الطالبة - تعديل
+  const fEditFollowup = e.target.closest('[data-form="edit-followup"]');
+  if (fEditFollowup) {
+    e.preventDefault();
+    const id = fEditFollowup.getAttribute('data-id');
+    const fd = new FormData(fEditFollowup);
+    
+    const tools = Array.from(fEditFollowup.querySelectorAll('input[name="tools"]:checked'))
+      .map(cb => cb.value);
+    
+    const followup = STATE.data.studentFollowups.find(f => f.id === id);
+    if (followup) {
+      followup.date_from = fd.get('date_from');
+      followup.date_to = fd.get('date_to');
+      followup.goal_1_id = fd.get('goal_1_id') || null;
+      followup.goal_2_id = fd.get('goal_2_id') || null;
+      followup.custom_goal_1 = fd.get('custom_goal_1') || null;
+      followup.custom_goal_1_type = fd.get('custom_goal_1_type') || null;
+      followup.custom_goal_2 = fd.get('custom_goal_2') || null;
+      followup.custom_goal_2_type = fd.get('custom_goal_2_type') || null;
+      followup.tools = tools;
+      followup.notes = fd.get('notes') || '';
+      followup.updated_at = new Date().toISOString();
+      
+      // Update in Supabase
+      (async () => {
+        try {
+          const { error } = await window.supabaseClient
+            .from('student_followups')
+            .update({
+              date_from: followup.date_from,
+              date_to: followup.date_to,
+              goal_1_id: followup.goal_1_id,
+              goal_2_id: followup.goal_2_id,
+              custom_goal_1: followup.custom_goal_1,
+              custom_goal_1_type: followup.custom_goal_1_type,
+              custom_goal_2: followup.custom_goal_2,
+              custom_goal_2_type: followup.custom_goal_2_type,
+              tools: JSON.stringify(tools),
+              notes: followup.notes,
+              updated_at: followup.updated_at
+            })
+            .eq('id', id);
+          
+          if (error) throw error;
+          
+          persistState();
+          closeModal();
+          toast('تم تحديث المتابعة ✅');
+          handleRoute();
+        } catch (error) {
+          console.error('Error updating followup:', error);
+          toast('حدث خطأ في تحديث المتابعة', 'error');
+        }
+      })();
+    }
+    return;
+  }
+
+  // اختبار الذاكرة السمعية - إضافة
+  const fAddMemoryTest = e.target.closest('[data-form="add-memory-test"]');
+  if (fAddMemoryTest) {
+    e.preventDefault();
+    const sid = fAddMemoryTest.getAttribute('data-sid');
+    const testType = parseInt(fAddMemoryTest.getAttribute('data-type'));
+    const fd = new FormData(fAddMemoryTest);
+    
+    const testData = {
+      id: 'amt-' + Date.now(),
+      studentId: sid,
+      teacher_id: STATE.user.id,
+      test_type: testType,
+      test_data: {},
+      score: parseInt(fd.get('score')),
+      total_score: parseInt(fd.get('total_score')),
+      notes: fd.get('notes') || '',
+      tested_at: fd.get('tested_at'),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Save to Supabase
+    (async () => {
+      try {
+        const { data, error } = await window.supabaseClient
+          .from('auditory_memory_tests')
+          .insert({
+            student_id: sid,
+            teacher_id: STATE.user.id,
+            test_type: testType,
+            test_data: JSON.stringify({}),
+            score: testData.score,
+            total_score: testData.total_score,
+            notes: testData.notes,
+            tested_at: testData.tested_at
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        
+        testData.id = data.id;
+        STATE.data.auditoryMemoryTests.unshift(testData);
+        persistState();
+        closeModal();
+        toast('تم حفظ الاختبار ✅');
+        handleRoute();
+      } catch (error) {
+        console.error('Error saving memory test:', error);
+        toast('حدث خطأ في حفظ الاختبار', 'error');
+      }
+    })();
+    return;
+  }
+
+  // التقرير المبدئي - إضافة
+  const fAddInitialReport = e.target.closest('[data-form="add-initial-report"]');
+  if (fAddInitialReport) {
+    e.preventDefault();
+    const sid = fAddInitialReport.getAttribute('data-sid');
+    const fd = new FormData(fAddInitialReport);
+    
+    const defaultIntro = 'بناءً على المتابعة المستمرة والملاحظات المباشرة للطالبة في بيئة التعلم، تم إعداد هذا التقرير المبدئي لتوثيق الأداء الحالي وتحديد نقاط القوة ومجالات التطوير.';
+    
+    const reportData = {
+      id: 'irp-' + Date.now(),
+      studentId: sid,
+      teacher_id: STATE.user.id,
+      report_date: fd.get('report_date'),
+      introduction: defaultIntro,
+      content: {
+        strengths: fd.get('strengths'),
+        areas_development: fd.get('areas_development'),
+        recommendations: fd.get('recommendations')
+      },
+      status: fd.get('status') || 'draft',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Save to Supabase
+    (async () => {
+      try {
+        const { data, error } = await window.supabaseClient
+          .from('initial_reports')
+          .insert({
+            student_id: sid,
+            teacher_id: STATE.user.id,
+            report_date: reportData.report_date,
+            introduction: reportData.introduction,
+            content: JSON.stringify(reportData.content),
+            status: reportData.status
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        
+        reportData.id = data.id;
+        STATE.data.initialReports.unshift(reportData);
+        persistState();
+        closeModal();
+        toast('تم حفظ التقرير ✅');
+        handleRoute();
+      } catch (error) {
+        console.error('Error saving initial report:', error);
+        toast('حدث خطأ في حفظ التقرير', 'error');
+      }
+    })();
+    return;
+  }
+
+  // التقرير المبدئي - تعديل
+  const fEditInitialReport = e.target.closest('[data-form="edit-initial-report"]');
+  if (fEditInitialReport) {
+    e.preventDefault();
+    const id = fEditInitialReport.getAttribute('data-id');
+    const fd = new FormData(fEditInitialReport);
+    
+    const report = STATE.data.initialReports.find(r => r.id === id);
+    if (report) {
+      report.report_date = fd.get('report_date');
+      report.content = {
+        strengths: fd.get('strengths'),
+        areas_development: fd.get('areas_development'),
+        recommendations: fd.get('recommendations')
+      };
+      report.status = fd.get('status') || 'draft';
+      report.updated_at = new Date().toISOString();
+      
+      // Update in Supabase
+      (async () => {
+        try {
+          const { error } = await window.supabaseClient
+            .from('initial_reports')
+            .update({
+              report_date: report.report_date,
+              content: JSON.stringify(report.content),
+              status: report.status,
+              updated_at: report.updated_at
+            })
+            .eq('id', id);
+          
+          if (error) throw error;
+          
+          persistState();
+          closeModal();
+          toast('تم تحديث التقرير ✅');
+          handleRoute();
+        } catch (error) {
+          console.error('Error updating initial report:', error);
+          toast('حدث خطأ في تحديث التقرير', 'error');
+        }
+      })();
+    }
+    return;
+  }
+  
+  // ========== END NEW FEATURES FORM HANDLERS ==========
 
   const f = e.target.closest('[data-form="create-activity"]');
   if (f) {
@@ -7708,6 +8256,513 @@ window.finishUpload = function(aid) {
   }
 };
 
+/* =========================================================
+   NEW FEATURES MODALS
+   ========================================================= */
+
+// 1️⃣ متابعة الطالبة - Modal
+function openAddFollowupModal(sid) {
+  const st = studentBy(sid);
+  const plan = STATE.data.plans.find(p => p.studentId === sid);
+  const today = new Date().toISOString().slice(0, 10);
+  
+  const planGoals = plan?.goals || [];
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>📈 إضافة متابعة لـ ${esc(st.name)}</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="add-followup" data-sid="${sid}">
+      <!-- فترة المتابعة -->
+      <div class="field-group">
+        <label class="section-label">📅 فترة المتابعة</label>
+        <div class="row" style="gap:12px">
+          <div class="field" style="flex:1">
+            <label>من</label>
+            <input name="date_from" type="date" value="${today}" required>
+          </div>
+          <div class="field" style="flex:1">
+            <label>إلى</label>
+            <input name="date_to" type="date" value="${today}" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- اختيار الأهداف من الخطة -->
+      <div class="field-group">
+        <label class="section-label">🎯 الأهداف من الخطة الفردية</label>
+        <div class="field">
+          <label>الهدف الأول</label>
+          <select name="goal_1_id">
+            <option value="">-- اختر هدف من الخطة --</option>
+            ${planGoals.map(g => `<option value="${g.id}">${esc(g.text || g.goal || g)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>الهدف الثاني</label>
+          <select name="goal_2_id">
+            <option value="">-- اختر هدف من الخطة --</option>
+            ${planGoals.map(g => `<option value="${g.id}">${esc(g.text || g.goal || g)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <!-- الأهداف اليدوية -->
+      <div class="field-group">
+        <label class="section-label">✍️ أهداف يدوية (اختياري)</label>
+        <div class="field">
+          <label>هدف يدوي أول</label>
+          <textarea name="custom_goal_1" rows="2" placeholder="اكتبي هدف مخصص..."></textarea>
+          <select name="custom_goal_1_type" class="mt-xs">
+            <option value="">-- نوع الهدف --</option>
+            <option value="تمهيدي">تمهيدي</option>
+            <option value="استقبالي">استقبالي</option>
+            <option value="تعبيري">تعبيري</option>
+            <option value="نطق">نطق</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>هدف يدوي ثاني</label>
+          <textarea name="custom_goal_2" rows="2" placeholder="اكتبي هدف مخصص..."></textarea>
+          <select name="custom_goal_2_type" class="mt-xs">
+            <option value="">-- نوع الهدف --</option>
+            <option value="تمهيدي">تمهيدي</option>
+            <option value="استقبالي">استقبالي</option>
+            <option value="تعبيري">تعبيري</option>
+            <option value="نطق">نطق</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- الوسائل المستخدمة -->
+      <div class="field-group">
+        <label class="section-label">🛠️ الوسائل المستخدمة</label>
+        <div class="checkbox-group">
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="آيباد"> آيباد</label>
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="بطاقات مصورة"> بطاقات مصورة</label>
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="فقاعات صابون"> فقاعات صابون</label>
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="أدوات تركيز وانتباه"> أدوات تركيز وانتباه</label>
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="مجسمات"> مجسمات</label>
+          <label class="checkbox-label"><input type="checkbox" name="tools" value="أخرى"> أخرى</label>
+        </div>
+      </div>
+
+      <!-- ملاحظات -->
+      <div class="field">
+        <label>ملاحظات (اختياري)</label>
+        <textarea name="notes" rows="3" placeholder="أضف ملاحظات عن المتابعة..."></textarea>
+      </div>
+
+      <button type="submit" class="btn lg block">${I.check}<span>حفظ المتابعة</span></button>
+    </form>
+  `, { lg: true });
+}
+
+function openEditFollowupModal(id) {
+  const followup = STATE.data.studentFollowups.find(f => f.id === id);
+  if (!followup) return;
+  
+  const st = studentBy(followup.studentId);
+  const plan = STATE.data.plans.find(p => p.studentId === followup.studentId);
+  const planGoals = plan?.goals || [];
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>✏️ تعديل المتابعة</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="edit-followup" data-id="${id}">
+      <!-- Same form as add but with pre-filled values -->
+      <div class="field-group">
+        <label class="section-label">📅 فترة المتابعة</label>
+        <div class="row" style="gap:12px">
+          <div class="field" style="flex:1">
+            <label>من</label>
+            <input name="date_from" type="date" value="${followup.date_from}" required>
+          </div>
+          <div class="field" style="flex:1">
+            <label>إلى</label>
+            <input name="date_to" type="date" value="${followup.date_to}" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="section-label">🎯 الأهداف من الخطة الفردية</label>
+        <div class="field">
+          <label>الهدف الأول</label>
+          <select name="goal_1_id">
+            <option value="">-- اختر هدف من الخطة --</option>
+            ${planGoals.map(g => `<option value="${g.id}" ${followup.goal_1_id === g.id ? 'selected' : ''}>${esc(g.text || g.goal || g)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>الهدف الثاني</label>
+          <select name="goal_2_id">
+            <option value="">-- اختر هدف من الخطة --</option>
+            ${planGoals.map(g => `<option value="${g.id}" ${followup.goal_2_id === g.id ? 'selected' : ''}>${esc(g.text || g.goal || g)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="section-label">✍️ أهداف يدوية (اختياري)</label>
+        <div class="field">
+          <label>هدف يدوي أول</label>
+          <textarea name="custom_goal_1" rows="2">${esc(followup.custom_goal_1 || '')}</textarea>
+          <select name="custom_goal_1_type" class="mt-xs">
+            <option value="">-- نوع الهدف --</option>
+            <option value="تمهيدي" ${followup.custom_goal_1_type === 'تمهيدي' ? 'selected' : ''}>تمهيدي</option>
+            <option value="استقبالي" ${followup.custom_goal_1_type === 'استقبالي' ? 'selected' : ''}>استقبالي</option>
+            <option value="تعبيري" ${followup.custom_goal_1_type === 'تعبيري' ? 'selected' : ''}>تعبيري</option>
+            <option value="نطق" ${followup.custom_goal_1_type === 'نطق' ? 'selected' : ''}>نطق</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>هدف يدوي ثاني</label>
+          <textarea name="custom_goal_2" rows="2">${esc(followup.custom_goal_2 || '')}</textarea>
+          <select name="custom_goal_2_type" class="mt-xs">
+            <option value="">-- نوع الهدف --</option>
+            <option value="تمهيدي" ${followup.custom_goal_2_type === 'تمهيدي' ? 'selected' : ''}>تمهيدي</option>
+            <option value="استقبالي" ${followup.custom_goal_2_type === 'استقبالي' ? 'selected' : ''}>استقبالي</option>
+            <option value="تعبيري" ${followup.custom_goal_2_type === 'تعبيري' ? 'selected' : ''}>تعبيري</option>
+            <option value="نطق" ${followup.custom_goal_2_type === 'نطق' ? 'selected' : ''}>نطق</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="section-label">🛠️ الوسائل المستخدمة</label>
+        <div class="checkbox-group">
+          ${['آيباد', 'بطاقات مصورة', 'فقاعات صابون', 'أدوات تركيز وانتباه', 'مجسمات', 'أخرى'].map(tool => `
+            <label class="checkbox-label">
+              <input type="checkbox" name="tools" value="${tool}" ${followup.tools?.includes(tool) ? 'checked' : ''}> ${tool}
+            </label>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="field">
+        <label>ملاحظات (اختياري)</label>
+        <textarea name="notes" rows="3">${esc(followup.notes || '')}</textarea>
+      </div>
+
+      <button type="submit" class="btn lg block">${I.check}<span>حفظ التعديلات</span></button>
+    </form>
+  `, { lg: true });
+}
+
+// 2️⃣ اختبار الذاكرة السمعية - Modal
+function openMemoryTestModal(sid, testType) {
+  const st = studentBy(sid);
+  const today = new Date().toISOString().slice(0, 10);
+  
+  // Placeholder for actual test data (will be added later)
+  const testTitle = testType === 1 ? 'النموذج الأول' : 'النموذج الثاني';
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>🧠 ${testTitle} - ${esc(st.name)}</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="add-memory-test" data-sid="${sid}" data-type="${testType}">
+      <div class="alert info mb-md">
+        <p><strong>ملاحظة:</strong> سيتم إضافة نماذج الاختبارات لاحقاً من قبل إدارة المدرسة.</p>
+      </div>
+
+      <div class="field">
+        <label>تاريخ الاختبار</label>
+        <input name="tested_at" type="date" value="${today}" required>
+      </div>
+
+      <div class="field">
+        <label>النتيجة</label>
+        <div class="row" style="gap:12px">
+          <input name="score" type="number" min="0" placeholder="النتيجة" required style="flex:1">
+          <span style="align-self:center;font-weight:bold">/</span>
+          <input name="total_score" type="number" min="1" placeholder="من" required style="flex:1">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>ملاحظات (اختياري)</label>
+        <textarea name="notes" rows="4" placeholder="ملاحظات عن أداء الطالبة في الاختبار..."></textarea>
+      </div>
+
+      <button type="submit" class="btn lg block">${I.check}<span>حفظ الاختبار</span></button>
+    </form>
+  `, { lg: true });
+}
+
+function viewMemoryTestModal(id) {
+  const test = STATE.data.auditoryMemoryTests.find(t => t.id === id);
+  if (!test) return;
+  
+  const st = studentBy(test.studentId);
+  const teacher = userBy(test.teacher_id);
+  const testTitle = test.test_type === 1 ? 'النموذج الأول' : 'النموذج الثاني';
+  const percentage = test.total_score ? Math.round((test.score / test.total_score) * 100) : 0;
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>🧠 ${testTitle}</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    
+    <div class="card">
+      <div class="row between mb-md">
+        <div>
+          <div class="text-bold text-lg">${esc(st.name)}</div>
+          <div class="text-sm text-muted">بواسطة: ${esc(teacher?.name || '')}</div>
+        </div>
+        <div class="text-end">
+          <div class="text-bold text-xl" style="color:var(--primary)">${arNum(percentage)}%</div>
+          <div class="text-sm text-muted">${arNum(test.score)}/${arNum(test.total_score)}</div>
+        </div>
+      </div>
+
+      <div class="row between mb-sm">
+        <span class="text-muted">تاريخ الاختبار:</span>
+        <span class="text-bold">${fmtDate(test.tested_at)}</span>
+      </div>
+
+      ${test.notes ? `
+        <div class="mt-md">
+          <div class="text-bold mb-xs">ملاحظات:</div>
+          <p class="text-sm">${esc(test.notes)}</p>
+        </div>
+      ` : ''}
+    </div>
+
+    <button class="btn block mt-md" data-action="close-modal">إغلاق</button>
+  `, { md: true });
+}
+
+// 3️⃣ التقرير المبدئي - Modal
+function openInitialReportModal(sid, reportId = null) {
+  const isEdit = !!reportId;
+  const report = isEdit ? STATE.data.initialReports.find(r => r.id === reportId) : null;
+  const st = isEdit ? studentBy(report.studentId) : studentBy(sid);
+  const today = new Date().toISOString().slice(0, 10);
+  
+  const defaultIntro = 'بناءً على المتابعة المستمرة والملاحظات المباشرة للطالبة في بيئة التعلم، تم إعداد هذا التقرير المبدئي لتوثيق الأداء الحالي وتحديد نقاط القوة ومجالات التطوير.';
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>📄 ${isEdit ? 'تعديل' : 'إنشاء'} التقرير المبدئي</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="${isEdit ? 'edit-initial-report' : 'add-initial-report'}" data-sid="${sid || report.studentId}" ${isEdit ? `data-id="${reportId}"` : ''}>
+      <!-- بيانات تلقائية -->
+      <div class="auto-fill-section mb-md" style="background:var(--canvas);padding:16px;border-radius:12px">
+        <div class="row between mb-xs">
+          <span class="text-muted">اسم الطالبة:</span>
+          <span class="text-bold">${esc(st.name)}</span>
+        </div>
+        <div class="row between mb-xs">
+          <span class="text-muted">الصف:</span>
+          <span class="text-bold">${esc(st.grade)}</span>
+        </div>
+        <div class="row between">
+          <span class="text-muted">التاريخ:</span>
+          <span class="text-bold">${fmtDate(isEdit ? report.report_date : today)}</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>تاريخ التقرير</label>
+        <input name="report_date" type="date" value="${isEdit ? report.report_date : today}" required>
+      </div>
+
+      <!-- مقدمة ثابتة -->
+      <div class="field">
+        <label>مقدمة التقرير (ثابتة)</label>
+        <textarea name="introduction" rows="3" readonly style="background:var(--canvas)">${defaultIntro}</textarea>
+      </div>
+
+      <!-- محتوى التقرير -->
+      <div class="field">
+        <label>نقاط القوة</label>
+        <textarea name="strengths" rows="4" placeholder="اذكري نقاط القوة للطالبة..." required>${isEdit && report.content?.strengths ? esc(report.content.strengths) : ''}</textarea>
+      </div>
+
+      <div class="field">
+        <label>مجالات التطوير</label>
+        <textarea name="areas_development" rows="4" placeholder="اذكري المجالات التي تحتاج تطوير..." required>${isEdit && report.content?.areas_development ? esc(report.content.areas_development) : ''}</textarea>
+      </div>
+
+      <div class="field">
+        <label>التوصيات</label>
+        <textarea name="recommendations" rows="4" placeholder="التوصيات والخطوات المقترحة..." required>${isEdit && report.content?.recommendations ? esc(report.content.recommendations) : ''}</textarea>
+      </div>
+
+      <div class="field">
+        <label>حالة التقرير</label>
+        <select name="status" required>
+          <option value="draft" ${isEdit && report.status === 'draft' ? 'selected' : ''}>مسودة</option>
+          <option value="final" ${isEdit && report.status === 'final' ? 'selected' : ''}>نهائي</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn lg block">${I.check}<span>${isEdit ? 'حفظ التعديلات' : 'حفظ التقرير'}</span></button>
+    </form>
+  `, { lg: true });
+}
+
+function viewInitialReportModal(id) {
+  const report = STATE.data.initialReports.find(r => r.id === id);
+  if (!report) return;
+  
+  const st = studentBy(report.studentId);
+  const teacher = userBy(report.teacher_id);
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>📄 التقرير المبدئي</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    
+    <div class="report-view" style="max-height:60vh;overflow-y:auto">
+      <!-- بيانات الطالبة -->
+      <div class="report-header mb-md">
+        <h3 class="text-center mb-md" style="color:var(--primary)">التقرير المبدئي</h3>
+        <div class="row between mb-xs">
+          <span class="text-muted">اسم الطالبة:</span>
+          <span class="text-bold">${esc(st.name)}</span>
+        </div>
+        <div class="row between mb-xs">
+          <span class="text-muted">الصف:</span>
+          <span class="text-bold">${esc(st.grade)}</span>
+        </div>
+        <div class="row between mb-xs">
+          <span class="text-muted">التاريخ:</span>
+          <span class="text-bold">${fmtDate(report.report_date)}</span>
+        </div>
+        <div class="row between">
+          <span class="text-muted">المعلمة:</span>
+          <span class="text-bold">${esc(teacher?.name || '')}</span>
+        </div>
+      </div>
+
+      <!-- مقدمة -->
+      <div class="report-section mb-md">
+        <p class="text-sm" style="line-height:1.8">${esc(report.introduction)}</p>
+      </div>
+
+      <!-- نقاط القوة -->
+      <div class="report-section mb-md">
+        <h4 class="text-bold mb-xs" style="color:var(--success)">🌟 نقاط القوة</h4>
+        <p class="text-sm" style="line-height:1.8">${esc(report.content?.strengths || '')}</p>
+      </div>
+
+      <!-- مجالات التطوير -->
+      <div class="report-section mb-md">
+        <h4 class="text-bold mb-xs" style="color:var(--warning)">📈 مجالات التطوير</h4>
+        <p class="text-sm" style="line-height:1.8">${esc(report.content?.areas_development || '')}</p>
+      </div>
+
+      <!-- التوصيات -->
+      <div class="report-section mb-md">
+        <h4 class="text-bold mb-xs" style="color:var(--primary)">💡 التوصيات</h4>
+        <p class="text-sm" style="line-height:1.8">${esc(report.content?.recommendations || '')}</p>
+      </div>
+
+      <!-- الحالة -->
+      <div class="text-center mt-md">
+        <span class="badge ${report.status === 'final' ? 'success' : 'warning'}">
+          ${report.status === 'final' ? '✅ تقرير نهائي' : '📝 مسودة'}
+        </span>
+      </div>
+    </div>
+
+    <div class="row" style="gap:8px;margin-top:16px">
+      <button class="btn ghost" data-action="edit-initial-report" data-id="${id}" style="flex:1">${I.edit}<span>تعديل</span></button>
+      <button class="btn" data-action="print-initial-report" data-id="${id}" style="flex:1">${I.download}<span>طباعة</span></button>
+    </div>
+  `, { lg: true });
+}
+
+function printInitialReport(id) {
+  const report = STATE.data.initialReports.find(r => r.id === id);
+  if (!report) return;
+  
+  const st = studentBy(report.studentId);
+  const teacher = userBy(report.teacher_id);
+  
+  // Create print window
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <title>التقرير المبدئي - ${st.name}</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; line-height: 1.8; }
+        h1 { text-align: center; color: #6E5BC7; margin-bottom: 30px; }
+        h2 { color: #333; margin-top: 24px; margin-bottom: 12px; }
+        .header { border: 2px solid #6E5BC7; padding: 20px; margin-bottom: 30px; border-radius: 8px; }
+        .header-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .label { font-weight: 600; color: #666; }
+        .value { font-weight: bold; }
+        .section { margin-bottom: 24px; }
+        .intro { background: #f5f3ff; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
+        @media print { body { padding: 20px; } }
+      </style>
+    </head>
+    <body>
+      <h1>التقرير المبدئي</h1>
+      
+      <div class="header">
+        <div class="header-row">
+          <span class="label">اسم الطالبة:</span>
+          <span class="value">${esc(st.name)}</span>
+        </div>
+        <div class="header-row">
+          <span class="label">الصف:</span>
+          <span class="value">${esc(st.grade)}</span>
+        </div>
+        <div class="header-row">
+          <span class="label">التاريخ:</span>
+          <span class="value">${fmtDate(report.report_date)}</span>
+        </div>
+        <div class="header-row">
+          <span class="label">المعلمة:</span>
+          <span class="value">${esc(teacher?.name || '')}</span>
+        </div>
+      </div>
+
+      <div class="intro">
+        <p>${esc(report.introduction)}</p>
+      </div>
+
+      <div class="section">
+        <h2>🌟 نقاط القوة</h2>
+        <p>${esc(report.content?.strengths || '')}</p>
+      </div>
+
+      <div class="section">
+        <h2>📈 مجالات التطوير</h2>
+        <p>${esc(report.content?.areas_development || '')}</p>
+      </div>
+
+      <div class="section">
+        <h2>💡 التوصيات</h2>
+        <p>${esc(report.content?.recommendations || '')}</p>
+      </div>
+
+      <script>
+        window.onload = function() {
+          window.print();
+        };
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-action="close-modal"]')) closeModal();
   
@@ -9059,6 +10114,101 @@ async function loadDataFromSupabase() {
       STATE.data.sentLibraryItems = sentLibraryItems;
       console.log('✅ Loaded sent library items:', sentLibraryItems.length);
     }
+    
+    // ========== LOAD NEW FEATURES DATA ==========
+    
+    // Load student followups
+    let followupsQuery = window.supabaseClient
+      .from('student_followups')
+      .select('*');
+    
+    if (STATE.user.role === 'teacher') {
+      // Teachers see only their own followups or followups for their school
+      followupsQuery = followupsQuery.or(`teacher_id.eq.${STATE.user.id},school_id.eq.${STATE.user.school_id}`);
+    } else if (STATE.user.role === 'student') {
+      // Students see their own followups
+      followupsQuery = followupsQuery.eq('student_id', STATE.user.id);
+    }
+    
+    const { data: followups } = await followupsQuery;
+    if (followups) {
+      STATE.data.studentFollowups = followups.map(f => ({
+        id: f.id,
+        studentId: f.student_id,
+        teacher_id: f.teacher_id,
+        date_from: f.date_from,
+        date_to: f.date_to,
+        goal_1_id: f.goal_1_id,
+        goal_2_id: f.goal_2_id,
+        custom_goal_1: f.custom_goal_1,
+        custom_goal_1_type: f.custom_goal_1_type,
+        custom_goal_2: f.custom_goal_2,
+        custom_goal_2_type: f.custom_goal_2_type,
+        tools: typeof f.tools === 'string' ? JSON.parse(f.tools) : (f.tools || []),
+        notes: f.notes,
+        created_at: f.created_at,
+        updated_at: f.updated_at
+      }));
+      console.log('✅ Loaded student followups:', followups.length);
+    }
+    
+    // Load auditory memory tests
+    let memoryTestsQuery = window.supabaseClient
+      .from('auditory_memory_tests')
+      .select('*');
+    
+    if (STATE.user.role === 'teacher') {
+      memoryTestsQuery = memoryTestsQuery.or(`teacher_id.eq.${STATE.user.id},school_id.eq.${STATE.user.school_id}`);
+    } else if (STATE.user.role === 'student') {
+      memoryTestsQuery = memoryTestsQuery.eq('student_id', STATE.user.id);
+    }
+    
+    const { data: memoryTests } = await memoryTestsQuery;
+    if (memoryTests) {
+      STATE.data.auditoryMemoryTests = memoryTests.map(t => ({
+        id: t.id,
+        studentId: t.student_id,
+        teacher_id: t.teacher_id,
+        test_type: t.test_type,
+        test_data: typeof t.test_data === 'string' ? JSON.parse(t.test_data) : (t.test_data || {}),
+        score: t.score,
+        total_score: t.total_score,
+        notes: t.notes,
+        tested_at: t.tested_at,
+        created_at: t.created_at,
+        updated_at: t.updated_at
+      }));
+      console.log('✅ Loaded auditory memory tests:', memoryTests.length);
+    }
+    
+    // Load initial reports
+    let reportsQuery = window.supabaseClient
+      .from('initial_reports')
+      .select('*');
+    
+    if (STATE.user.role === 'teacher') {
+      reportsQuery = reportsQuery.or(`teacher_id.eq.${STATE.user.id},school_id.eq.${STATE.user.school_id}`);
+    } else if (STATE.user.role === 'student') {
+      reportsQuery = reportsQuery.eq('student_id', STATE.user.id);
+    }
+    
+    const { data: reports } = await reportsQuery;
+    if (reports) {
+      STATE.data.initialReports = reports.map(r => ({
+        id: r.id,
+        studentId: r.student_id,
+        teacher_id: r.teacher_id,
+        report_date: r.report_date,
+        introduction: r.introduction,
+        content: typeof r.content === 'string' ? JSON.parse(r.content) : (r.content || {}),
+        status: r.status,
+        created_at: r.created_at,
+        updated_at: r.updated_at
+      }));
+      console.log('✅ Loaded initial reports:', reports.length);
+    }
+    
+    // ========== END LOAD NEW FEATURES DATA ==========
     
     // ✅ Setup realtime subscriptions for messages
     setupRealtimeSubscriptions();
