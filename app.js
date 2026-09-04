@@ -5877,11 +5877,15 @@ document.addEventListener('submit', (e) => {
       date_from: fd.get('date_from'),
       date_to: fd.get('date_to'),
       goal_1_id: fd.get('goal_1_id') || null,
+      goal_1_evaluation: fd.get('goal_1_evaluation') || null,
       goal_2_id: fd.get('goal_2_id') || null,
+      goal_2_evaluation: fd.get('goal_2_evaluation') || null,
       custom_goal_1: fd.get('custom_goal_1') || null,
       custom_goal_1_type: fd.get('custom_goal_1_type') || null,
+      custom_goal_1_evaluation: fd.get('custom_goal_1_evaluation') || null,
       custom_goal_2: fd.get('custom_goal_2') || null,
       custom_goal_2_type: fd.get('custom_goal_2_type') || null,
+      custom_goal_2_evaluation: fd.get('custom_goal_2_evaluation') || null,
       tools: tools,
       notes: fd.get('notes') || '',
       created_at: new Date().toISOString(),
@@ -5899,11 +5903,15 @@ document.addEventListener('submit', (e) => {
             date_from: followupData.date_from,
             date_to: followupData.date_to,
             goal_1_id: followupData.goal_1_id,
+            goal_1_evaluation: followupData.goal_1_evaluation,
             goal_2_id: followupData.goal_2_id,
+            goal_2_evaluation: followupData.goal_2_evaluation,
             custom_goal_1: followupData.custom_goal_1,
             custom_goal_1_type: followupData.custom_goal_1_type,
+            custom_goal_1_evaluation: followupData.custom_goal_1_evaluation,
             custom_goal_2: followupData.custom_goal_2,
             custom_goal_2_type: followupData.custom_goal_2_type,
+            custom_goal_2_evaluation: followupData.custom_goal_2_evaluation,
             tools: JSON.stringify(tools),
             notes: followupData.notes
           })
@@ -5941,11 +5949,15 @@ document.addEventListener('submit', (e) => {
       followup.date_from = fd.get('date_from');
       followup.date_to = fd.get('date_to');
       followup.goal_1_id = fd.get('goal_1_id') || null;
+      followup.goal_1_evaluation = fd.get('goal_1_evaluation') || null;
       followup.goal_2_id = fd.get('goal_2_id') || null;
+      followup.goal_2_evaluation = fd.get('goal_2_evaluation') || null;
       followup.custom_goal_1 = fd.get('custom_goal_1') || null;
       followup.custom_goal_1_type = fd.get('custom_goal_1_type') || null;
+      followup.custom_goal_1_evaluation = fd.get('custom_goal_1_evaluation') || null;
       followup.custom_goal_2 = fd.get('custom_goal_2') || null;
       followup.custom_goal_2_type = fd.get('custom_goal_2_type') || null;
+      followup.custom_goal_2_evaluation = fd.get('custom_goal_2_evaluation') || null;
       followup.tools = tools;
       followup.notes = fd.get('notes') || '';
       followup.updated_at = new Date().toISOString();
@@ -5959,11 +5971,15 @@ document.addEventListener('submit', (e) => {
               date_from: followup.date_from,
               date_to: followup.date_to,
               goal_1_id: followup.goal_1_id,
+              goal_1_evaluation: followup.goal_1_evaluation,
               goal_2_id: followup.goal_2_id,
+              goal_2_evaluation: followup.goal_2_evaluation,
               custom_goal_1: followup.custom_goal_1,
               custom_goal_1_type: followup.custom_goal_1_type,
+              custom_goal_1_evaluation: followup.custom_goal_1_evaluation,
               custom_goal_2: followup.custom_goal_2,
               custom_goal_2_type: followup.custom_goal_2_type,
+              custom_goal_2_evaluation: followup.custom_goal_2_evaluation,
               tools: JSON.stringify(tools),
               notes: followup.notes,
               updated_at: followup.updated_at
@@ -8298,6 +8314,23 @@ function openAddFollowupModal(sid) {
             <option value="">-- اختر هدف من الخطة --</option>
             ${planGoals.map(g => `<option value="${g.id}">${esc(g.text || g.goal || g)}</option>`).join('')}
           </select>
+          <div class="mt-xs">
+            <label class="text-sm text-muted">تقييم الهدف:</label>
+            <div class="row" style="gap:8px;margin-top:6px">
+              <label class="radio-chip">
+                <input type="radio" name="goal_1_evaluation" value="mastered" hidden>
+                <span>أتقن</span>
+              </label>
+              <label class="radio-chip">
+                <input type="radio" name="goal_1_evaluation" value="partial" hidden>
+                <span>جزئياً</span>
+              </label>
+              <label class="radio-chip">
+                <input type="radio" name="goal_1_evaluation" value="not_mastered" hidden>
+                <span>لم يتقن</span>
+              </label>
+            </div>
+          </div>
         </div>
         <div class="field">
           <label>الهدف الثاني</label>
@@ -8305,6 +8338,23 @@ function openAddFollowupModal(sid) {
             <option value="">-- اختر هدف من الخطة --</option>
             ${planGoals.map(g => `<option value="${g.id}">${esc(g.text || g.goal || g)}</option>`).join('')}
           </select>
+          <div class="mt-xs">
+            <label class="text-sm text-muted">تقييم الهدف:</label>
+            <div class="row" style="gap:8px;margin-top:6px">
+              <label class="radio-chip">
+                <input type="radio" name="goal_2_evaluation" value="mastered" hidden>
+                <span>أتقن</span>
+              </label>
+              <label class="radio-chip">
+                <input type="radio" name="goal_2_evaluation" value="partial" hidden>
+                <span>جزئياً</span>
+              </label>
+              <label class="radio-chip">
+                <input type="radio" name="goal_2_evaluation" value="not_mastered" hidden>
+                <span>لم يتقن</span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -8321,6 +8371,23 @@ function openAddFollowupModal(sid) {
             <option value="تعبيري">تعبيري</option>
             <option value="نطق">نطق</option>
           </select>
+          <div class="mt-xs">
+            <label class="text-sm text-muted">تقييم الهدف:</label>
+            <div class="row" style="gap:8px;margin-top:6px">
+              <label class="radio-chip">
+                <input type="radio" name="custom_goal_1_evaluation" value="mastered" hidden>
+                <span>أتقن</span>
+              </label>
+              <label class="radio-chip">
+                <input type="radio" name="custom_goal_1_evaluation" value="partial" hidden>
+                <span>جزئياً</span>
+              </label>
+              <label class="radio-chip">
+                <input type="radio" name="custom_goal_1_evaluation" value="not_mastered" hidden>
+                <span>لم يتقن</span>
+              </label>
+            </div>
+          </div>
         </div>
         <div class="field">
           <label>هدف يدوي ثاني</label>
@@ -8332,6 +8399,23 @@ function openAddFollowupModal(sid) {
             <option value="تعبيري">تعبيري</option>
             <option value="نطق">نطق</option>
           </select>
+          <div class="mt-xs">
+            <label class="text-sm text-muted">تقييم الهدف:</label>
+            <div class="row" style="gap:8px;margin-top:6px">
+              <label class="radio-chip">
+                <input type="radio" name="custom_goal_2_evaluation" value="mastered" hidden>
+                <span>أتقن</span>
+              </label>
+              <label class="radio-chip">
+                <input type="radio" name="custom_goal_2_evaluation" value="partial" hidden>
+                <span>جزئياً</span>
+              </label>
+              <label class="radio-chip">
+                <input type="radio" name="custom_goal_2_evaluation" value="not_mastered" hidden>
+                <span>لم يتقن</span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 
