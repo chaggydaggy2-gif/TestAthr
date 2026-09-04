@@ -65,7 +65,30 @@ CREATE INDEX idx_initial_data_student ON initial_student_data(student_id);
 CREATE INDEX idx_initial_data_teacher ON initial_student_data(teacher_id);
 
 
--- 4️⃣ جدول الخطة الفردية IEP (Individual Education Plan)
+-- 4️⃣ جدول التشخيص الطبي والنفسي (Medical & Psychological Diagnosis)
+CREATE TABLE IF NOT EXISTS medical_diagnosis (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  teacher_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  
+  -- ملف PDF
+  file_url TEXT,
+  file_name TEXT,
+  file_size INTEGER,
+  
+  -- ملاحظات
+  notes TEXT,
+  uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_medical_diagnosis_student ON medical_diagnosis(student_id);
+CREATE INDEX idx_medical_diagnosis_teacher ON medical_diagnosis(teacher_id);
+
+
+-- 5️⃣ جدول الخطة الفردية IEP (Individual Education Plan)
 CREATE TABLE IF NOT EXISTS iep_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -189,6 +212,7 @@ CREATE INDEX idx_messages_status ON parent_messages(status);
 ALTER TABLE parent_consents DISABLE ROW LEVEL SECURITY;
 ALTER TABLE student_notes DISABLE ROW LEVEL SECURITY;
 ALTER TABLE initial_student_data DISABLE ROW LEVEL SECURITY;
+ALTER TABLE medical_diagnosis DISABLE ROW LEVEL SECURITY;
 ALTER TABLE iep_plans DISABLE ROW LEVEL SECURITY;
 ALTER TABLE session_tracking DISABLE ROW LEVEL SECURITY;
 ALTER TABLE parent_messages DISABLE ROW LEVEL SECURITY;
@@ -211,6 +235,11 @@ CREATE TRIGGER update_student_notes_updated_at
 
 CREATE TRIGGER update_initial_student_data_updated_at
   BEFORE UPDATE ON initial_student_data
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_medical_diagnosis_updated_at
+  BEFORE UPDATE ON medical_diagnosis
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 

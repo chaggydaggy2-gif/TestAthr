@@ -9056,6 +9056,8 @@ function viewPrincipalTeachers() {
                   ${t.email ? `<div class="text-xs text-muted mt-sm">${esc(t.email)}</div>` : ''}
                   <div class="row wrap" style="gap:6px;margin-top:12px">
                     ${pill(`${arNum(students.length)} طالبة`, 'primary')}
+                    ${t.teacher_type === 'speech_therapy' ? pill('معلمة نطق', 'primary') : ''}
+                    ${t.teacher_type === 'special_education' ? pill('معلمة تربية خاصة', 'info') : ''}
                   </div>
                   <div class="row wrap" style="gap:6px;margin-top:10px">
                     ${teacherPermissionPills(t)}
@@ -9306,6 +9308,16 @@ document.addEventListener('click', (e) => {
         </div>
         
         <div class="field">
+          <label>نوع المعلمة <span style="color:var(--critical)">*</span></label>
+          <select name="teacher_type" required>
+            <option value="">-- اختاري نوع المعلمة --</option>
+            <option value="speech_therapy">معلمة نطق</option>
+            <option value="special_education">معلمة تربية خاصة</option>
+          </select>
+          <div class="text-xs text-muted mt-sm">يحدد الصفحات والمهام المتاحة للمعلمة</div>
+        </div>
+        
+        <div class="field">
           <label>البريد الإلكتروني <span style="color:var(--critical)">*</span></label>
           <input name="email" type="email" required placeholder="fatima@athr.sa">
           <div class="text-xs text-muted mt-sm">سيستخدم للدخول إلى النظام</div>
@@ -9474,9 +9486,17 @@ document.addEventListener('click', (e) => {
         </div>
         
         <div class="field">
-          <label>البريد الإلكتروني</label>
-          <input name="email" type="email" value="${esc(teacher.email || '')}" disabled>
-          <div class="text-xs text-muted mt-sm">لا يمكن تعديل البريد الإلكتروني</div>
+          <label>نوع المعلمة <span style="color:var(--critical)">*</span></label>
+          <select name="teacher_type" required>
+            <option value="">-- اختاري نوع المعلمة --</option>
+            <option value="speech_therapy" ${teacher.teacher_type === 'speech_therapy' ? 'selected' : ''}>معلمة نطق</option>
+            <option value="special_education" ${teacher.teacher_type === 'special_education' ? 'selected' : ''}>معلمة تربية خاصة</option>
+          </select>
+        </div>
+        
+        <div class="field">
+          <label>البريد الإلكتروني <span style="color:var(--critical)">*</span></label>
+          <input name="email" type="email" required value="${esc(teacher.email || '')}">
         </div>
         
         <div class="field">
@@ -9615,6 +9635,7 @@ document.addEventListener('submit', async (e) => {
       const teacherData = {
         name: formData.get('name'),
         title: formData.get('title'),
+        teacher_type: formData.get('teacher_type'),
         email: formData.get('email'),
         phone: formData.get('phone'),
         permissions: {
@@ -9781,6 +9802,8 @@ document.addEventListener('submit', async (e) => {
       const updates = {
         name: formData.get('name'),
         title: formData.get('title'),
+        teacher_type: formData.get('teacher_type'),
+        email: formData.get('email'),
         phone: formData.get('phone'),
         permissions: {
           can_add_students: formData.get('can_add_students') === 'on',
