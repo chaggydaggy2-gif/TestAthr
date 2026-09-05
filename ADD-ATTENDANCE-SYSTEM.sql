@@ -10,7 +10,7 @@
 CREATE TABLE IF NOT EXISTS public.attendance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
-    date DATE NOT NULL,
+    attendance_date DATE NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('present', 'absent')), -- 'present' = ح, 'absent' = غ
     teacher_id UUID NOT NULL REFERENCES public.users(id) ON DELETE SET NULL,
     school_id UUID NOT NULL,
@@ -18,14 +18,14 @@ CREATE TABLE IF NOT EXISTS public.attendance (
     updated_at TIMESTAMPTZ DEFAULT now(),
     
     -- Ensure one record per student per day
-    UNIQUE(student_id, date)
+    UNIQUE(student_id, attendance_date)
 );
 
 -- 2. Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON public.attendance(student_id);
-CREATE INDEX IF NOT EXISTS idx_attendance_date ON public.attendance(date);
+CREATE INDEX IF NOT EXISTS idx_attendance_date ON public.attendance(attendance_date);
 CREATE INDEX IF NOT EXISTS idx_attendance_school_id ON public.attendance(school_id);
-CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON public.attendance(student_id, date);
+CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON public.attendance(student_id, attendance_date);
 
 -- 3. Enable Row Level Security
 ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
@@ -131,13 +131,17 @@ CREATE TRIGGER set_attendance_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_attendance_updated_at();
 
--- 7. Create view for attendance statistics
+-- 7. Create view for attendance statistics (optional - can be removed if not needed)
+-- Note: This view is not strictly required for the attendance system to work
+-- It's provided for convenience but can be dropped if it causes issues
+DROP VIEW IF EXISTS public.attendance_stats;
+
 CREATE OR REPLACE VIEW public.attendance_stats AS
 SELECT 
     s.id as student_id,
     s.name as student_name,
     s.school_id,
-    DATE_TRUNC('month', a.date)::date as month,
+    DATE_TRUNC('month', a.attendance_date)::date as month,
     COUNT(*) FILTER (WHERE a.status = 'present') as total_present,
     COUNT(*) FILTER (WHERE a.status = 'absent') as total_absent,
     COUNT(*) as total_days,
@@ -145,8 +149,7 @@ SELECT
     ROUND(COUNT(*) FILTER (WHERE a.status = 'absent')::numeric / NULLIF(COUNT(*), 0) * 100, 2) as absent_percentage
 FROM public.students s
 LEFT JOIN public.attendance a ON a.student_id = s.id
-WHERE a.date IS NOT NULL OR a.student_id IS NULL
-GROUP BY s.id, s.name, s.school_id, DATE_TRUNC('month', a.date);
+GROUP BY s.id, s.name, s.school_id, DATE_TRUNC('month', a.attendance_date);
 
 -- 8. Grant permissions
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.attendance TO authenticated;

@@ -9467,7 +9467,7 @@ async function toggleAttendance(studentId, dateStr) {
         .from('attendance')
         .delete()
         .eq('student_id', studentId)
-        .eq('date', dateStr);
+        .eq('attendance_date', dateStr);
       
       if (error) {
         console.error('Error deleting attendance:', error);
@@ -9503,17 +9503,17 @@ async function toggleAttendance(studentId, dateStr) {
   persistState();
   
   // Update Supabase
-  const { error } = await supabase
+  const { error} = await supabase
     .from('attendance')
     .upsert({
       id: record.id,
       student_id: record.studentId,
-      date: record.date,
+      attendance_date: record.date,
       status: record.status,
       teacher_id: record.teacherId,
       school_id: record.schoolId,
       updated_at: record.updatedAt
-    }, { onConflict: 'student_id,date' });
+    }, { onConflict: 'student_id,attendance_date' });
   
   if (error) {
     console.error('Error saving attendance:', error);
@@ -12177,7 +12177,7 @@ async function loadDataFromSupabase() {
       STATE.data.attendance = attendance.map(a => ({
         id: a.id,
         studentId: a.student_id,
-        date: a.date,
+        date: a.attendance_date,
         status: a.status,
         teacherId: a.teacher_id,
         schoolId: a.school_id,
@@ -12299,7 +12299,7 @@ function setupRealtimeSubscriptions() {
             STATE.data.attendance.push({
               id: newRecord.id,
               studentId: newRecord.student_id,
-              date: newRecord.date,
+              date: newRecord.attendance_date,
               status: newRecord.status,
               teacherId: newRecord.teacher_id,
               schoolId: newRecord.school_id,
@@ -12315,7 +12315,7 @@ function setupRealtimeSubscriptions() {
             STATE.data.attendance[index] = {
               id: newRecord.id,
               studentId: newRecord.student_id,
-              date: newRecord.date,
+              date: newRecord.attendance_date,
               status: newRecord.status,
               teacherId: newRecord.teacher_id,
               schoolId: newRecord.school_id,
