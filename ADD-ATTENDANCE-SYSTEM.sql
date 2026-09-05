@@ -116,11 +116,10 @@ ON public.attendance
 FOR SELECT
 TO authenticated
 USING (
-    EXISTS (
-        SELECT 1 FROM public.users u
-        WHERE u.id = auth.uid()
-        AND u.role = 'parent'
-        AND u.student_id = attendance.student_id
+    attendance.student_id IN (
+        SELECT s.id 
+        FROM public.students s
+        WHERE s.parent_id = auth.uid()
     )
 );
 
