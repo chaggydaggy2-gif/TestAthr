@@ -131,29 +131,29 @@ CREATE TRIGGER set_attendance_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_attendance_updated_at();
 
--- 7. Create view for attendance statistics (optional - can be removed if not needed)
--- Note: This view is not strictly required for the attendance system to work
--- It's provided for convenience but can be dropped if it causes issues
-DROP VIEW IF EXISTS public.attendance_stats;
+-- 7. Simple attendance statistics query
+-- You can run this manually when needed instead of creating a view
+-- 
+-- Example query to get attendance stats:
+-- 
+-- SELECT 
+--     s.id as student_id,
+--     s.name as student_name,
+--     DATE_TRUNC('month', a.attendance_date)::date as month,
+--     COUNT(*) FILTER (WHERE a.status = 'present') as total_present,
+--     COUNT(*) FILTER (WHERE a.status = 'absent') as total_absent,
+--     COUNT(*) as total_days
+-- FROM students s
+-- LEFT JOIN attendance a ON a.student_id = s.id
+-- GROUP BY s.id, s.name, DATE_TRUNC('month', a.attendance_date);
 
-CREATE OR REPLACE VIEW public.attendance_stats AS
-SELECT 
-    s.id as student_id,
-    s.name as student_name,
-    s.school_id,
-    DATE_TRUNC('month', a.attendance_date)::date as month,
-    COUNT(*) FILTER (WHERE a.status = 'present') as total_present,
-    COUNT(*) FILTER (WHERE a.status = 'absent') as total_absent,
-    COUNT(*) as total_days,
-    ROUND(COUNT(*) FILTER (WHERE a.status = 'present')::numeric / NULLIF(COUNT(*), 0) * 100, 2) as present_percentage,
-    ROUND(COUNT(*) FILTER (WHERE a.status = 'absent')::numeric / NULLIF(COUNT(*), 0) * 100, 2) as absent_percentage
-FROM public.students s
-LEFT JOIN public.attendance a ON a.student_id = s.id
-GROUP BY s.id, s.name, s.school_id, DATE_TRUNC('month', a.attendance_date);
+-- Skip creating the view to avoid schema issues
 
 -- 8. Grant permissions
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.attendance TO authenticated;
-GRANT SELECT ON public.attendance_stats TO authenticated;
+
+-- Note: attendance_stats view was skipped to avoid schema compatibility issues
+-- You can calculate statistics in your application logic instead
 
 -- ============================================
 -- NOTES:
@@ -170,7 +170,8 @@ GRANT SELECT ON public.attendance_stats TO authenticated;
 DO $$
 BEGIN
     RAISE NOTICE 'Attendance system tables created successfully!';
-    RAISE NOTICE 'Tables: attendance';
-    RAISE NOTICE 'Views: attendance_stats';
-    RAISE NOTICE 'All RLS policies applied.';
+    RAISE NOTICE 'Table: attendance';
+    RAISE NOTICE 'Indexes: 4 created';
+    RAISE NOTICE 'RLS Policies: 5 applied';
+    RAISE NOTICE 'Note: Statistics are calculated in the app, no view needed';
 END $$;
