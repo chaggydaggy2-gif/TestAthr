@@ -4105,7 +4105,11 @@ body.modal-open { overflow: hidden; }
 .attendance-day.clickable:hover {
   border-color: var(--accent);
   background: var(--accent-50);
-  transform: scale(1.05);
+  transform: scale(1.02);
+}
+
+.attendance-day.clickable:active {
+  transform: scale(0.98);
 }
 
 .attendance-day.marked.present {

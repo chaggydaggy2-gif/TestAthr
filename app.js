@@ -2529,15 +2529,18 @@ function renderAttendanceTab(st) {
     
     // Check if date is today or in the past (not future)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setHours(23, 59, 59, 999); // End of today
     dateObj.setHours(0, 0, 0, 0);
     const isPast = dateObj <= today;
-    const clickable = STATE.user?.role === 'teacher' && isPast ? 'clickable' : '';
+    
+    // For teachers, all past days should be clickable
+    const clickable = (STATE.user?.role === 'teacher' && isPast) ? 'clickable' : '';
     
     calendarDays += `
       <div class="attendance-day ${statusClass} ${clickable}" 
            data-date="${dateStr}" 
-           data-student-id="${st.id}">
+           data-student-id="${st.id}"
+           data-day="${day}">
         <div class="day-number">${arNum(day)}</div>
         ${statusLabel ? `<div class="day-status">${statusLabel}</div>` : ''}
       </div>
@@ -12586,16 +12589,32 @@ window.addEventListener('DOMContentLoaded', async () => {
   
   // Setup event delegation for attendance calendar
   document.addEventListener('click', (e) => {
+    // Try to find clickable day
     const dayEl = e.target.closest('.attendance-day.clickable');
     if (dayEl) {
-      console.log('📅 Attendance day clicked!', dayEl);
+      console.log('📅 Clickable attendance day clicked!', dayEl);
       const studentId = dayEl.getAttribute('data-student-id');
       const date = dayEl.getAttribute('data-date');
-      console.log('📊 Data:', { studentId, date });
+      const day = dayEl.getAttribute('data-day');
+      console.log('📊 Data:', { studentId, date, day });
       if (studentId && date) {
         toggleAttendance(studentId, date);
       } else {
         console.log('❌ Missing studentId or date');
+      }
+      return;
+    }
+    
+    // Fallback: try any attendance-day if user is teacher
+    const anyDay = e.target.closest('.attendance-day');
+    if (anyDay && STATE.user?.role === 'teacher') {
+      console.log('📅 Fallback: Any attendance day clicked!', anyDay);
+      const studentId = anyDay.getAttribute('data-student-id');
+      const date = anyDay.getAttribute('data-date');
+      const day = anyDay.getAttribute('data-day');
+      console.log('📊 Fallback Data:', { studentId, date, day, hasClickable: anyDay.classList.contains('clickable') });
+      if (studentId && date) {
+        toggleAttendance(studentId, date);
       }
     }
   });
