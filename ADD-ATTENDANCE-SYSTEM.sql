@@ -137,7 +137,7 @@ SELECT
     s.id as student_id,
     s.name as student_name,
     s.school_id,
-    DATE_TRUNC('month', a.date) as month,
+    DATE_TRUNC('month', a.date)::date as month,
     COUNT(*) FILTER (WHERE a.status = 'present') as total_present,
     COUNT(*) FILTER (WHERE a.status = 'absent') as total_absent,
     COUNT(*) as total_days,
@@ -145,6 +145,7 @@ SELECT
     ROUND(COUNT(*) FILTER (WHERE a.status = 'absent')::numeric / NULLIF(COUNT(*), 0) * 100, 2) as absent_percentage
 FROM public.students s
 LEFT JOIN public.attendance a ON a.student_id = s.id
+WHERE a.date IS NOT NULL OR a.student_id IS NULL
 GROUP BY s.id, s.name, s.school_id, DATE_TRUNC('month', a.date);
 
 -- 8. Grant permissions
