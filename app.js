@@ -835,6 +835,7 @@ function navFor(role) {
     return [
       { href: '#/teacher/dashboard',  label: 'الرئيسية',  icon: I.home },
       { href: '#/teacher/students',   label: 'الطلاب',   icon: I.users },
+      { href: '#/teacher/attendance', label: 'كشف الحضور', icon: '📅' },
       { href: '#/teacher/library',    label: 'المكتبة',  icon: I.book },
       { href: '#/teacher/settings',   label: 'الإعدادات',icon: I.settings },
     ];
@@ -1427,6 +1428,7 @@ function viewStudentProfile(id, role) {
       <div class="tab ${activeTab==='forms'?'active':''}"    data-tab="forms">📋 النماذج</div>
       <div class="tab ${activeTab==='plan'?'active':''}"     data-tab="plan">✨ الخطة الفردية</div>
       <div class="tab ${activeTab==='follow'?'active':''}"   data-tab="follow">📈 متابعة الطالبة</div>
+      <div class="tab ${activeTab==='attendance'?'active':''}" data-tab="attendance">📅 الحضور والغياب</div>
       <div class="tab ${activeTab==='memory'?'active':''}"   data-tab="memory">🧠 اختبار الذاكرة السمعية</div>
       <div class="tab ${activeTab==='report'?'active':''}"   data-tab="report">📄 التقرير المبدئي</div>
       <div class="tab ${activeTab==='assessment'?'active':''}" data-tab="assessment">📊 التقييم</div>
@@ -1439,6 +1441,7 @@ function viewStudentProfile(id, role) {
     <div data-tab-content="forms"      ${activeTab!=='forms'?'class="hide"':''}>${renderFormsTab(st)}</div>
     <div data-tab-content="plan"       ${activeTab!=='plan'?'class="hide"':''}>${renderPlanTab(st, plan)}</div>
     <div data-tab-content="follow"     ${activeTab!=='follow'?'class="hide"':''}>${renderFollowTab(st, plan)}</div>
+    <div data-tab-content="attendance" ${activeTab!=='attendance'?'class="hide"':''}>${renderAttendanceTab(st)}</div>
     <div data-tab-content="memory"     ${activeTab!=='memory'?'class="hide"':''}>${renderMemoryTestTab(st)}</div>
     <div data-tab-content="report"     ${activeTab!=='report'?'class="hide"':''}>${renderInitialReportTab(st)}</div>
     <div data-tab-content="assessment" ${activeTab!=='assessment'?'class="hide"':''}>${renderAssessmentTab(st)}</div>
@@ -2465,8 +2468,145 @@ function renderAssessmentTab(st) {
   `;
 }
 
+// 4️⃣ الحضور والغياب
+function renderAttendanceTab(st) {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth(); // 0-11
+  
+  // Get selected month from URL params or default to current month
+  const params = new URLSearchParams((location.hash.split('?')[1]) || '');
+  const selectedYear = parseInt(params.get('year')) || currentYear;
+  const selectedMonth = parseInt(params.get('month')) || currentMonth;
+  
+  // Arabic months
+  const arabicMonths = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ];
+  
+  const arabicDays = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+  
+  // Get attendance records for this student
+  const attendance = (STATE.data.attendance || []).filter(a => a.studentId === st.id);
+  
+  // Calculate calendar for selected month
+  const firstDay = new Date(selectedYear, selectedMonth, 1);
+  const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startDayOfWeek = firstDay.getDay(); // 0 = Sunday
+  
+  // Calculate statistics for selected month
+  const monthStart = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+  const monthEnd = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+  const monthAttendance = attendance.filter(a => a.date >= monthStart && a.date <= monthEnd);
+  const presentCount = monthAttendance.filter(a => a.status === 'present').length;
+  const absentCount = monthAttendance.filter(a => a.status === 'absent').length;
+  const totalMarked = presentCount + absentCount;
+  const presentPercentage = totalMarked > 0 ? Math.round((presentCount / totalMarked) * 100) : 0;
+  const absentPercentage = totalMarked > 0 ? Math.round((absentCount / totalMarked) * 100) : 0;
+  
+  // Build calendar days
+  let calendarDays = '';
+  
+  // Empty cells before first day
+  for (let i = 0; i < startDayOfWeek; i++) {
+    calendarDays += '<div class="attendance-day empty"></div>';
+  }
+  
+  // Days of month
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const record = attendance.find(a => a.date === dateStr);
+    const status = record?.status || '';
+    const statusLabel = status === 'present' ? 'ح' : status === 'absent' ? 'غ' : '';
+    const statusClass = status ? `marked ${status}` : '';
+    const isPast = new Date(dateStr) <= currentDate;
+    const clickable = STATE.user?.role === 'teacher' && isPast ? 'clickable' : '';
+    
+    calendarDays += `
+      <div class="attendance-day ${statusClass} ${clickable}" 
+           data-date="${dateStr}" 
+           data-student-id="${st.id}"
+           ${clickable ? `onclick="toggleAttendance('${st.id}', '${dateStr}')"` : ''}>
+        <div class="day-number">${arNum(day)}</div>
+        ${statusLabel ? `<div class="day-status">${statusLabel}</div>` : ''}
+      </div>
+    `;
+  }
+  
+  // Month navigation
+  const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+  const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+  const nextMonth = selectedMonth === 11 ? 0 : selectedMonth + 1;
+  const nextYear = selectedMonth === 11 ? selectedYear + 1 : selectedYear;
+  
+  return `
+    <div class="card">
+      <div class="card-title">
+        <h3>📅 الحضور والغياب</h3>
+        <p class="text-sm text-muted">سجل حضور وغياب الطالبة</p>
+      </div>
+      
+      <!-- Statistics -->
+      <div class="attendance-stats mb-lg">
+        <div class="stat-box present">
+          <div class="stat-label">حاضر</div>
+          <div class="stat-value">${arNum(presentCount)} يوم</div>
+          <div class="stat-percentage">${arNum(presentPercentage)}%</div>
+        </div>
+        <div class="stat-box absent">
+          <div class="stat-label">غائب</div>
+          <div class="stat-value">${arNum(absentCount)} يوم</div>
+          <div class="stat-percentage">${arNum(absentPercentage)}%</div>
+        </div>
+        <div class="stat-box total">
+          <div class="stat-label">الإجمالي</div>
+          <div class="stat-value">${arNum(totalMarked)} يوم</div>
+        </div>
+      </div>
+      
+      <!-- Month Navigator -->
+      <div class="month-navigator">
+        <button class="btn ghost sm" onclick="navigateAttendanceMonth(${prevYear}, ${prevMonth})">
+          ${I.back}<span>الشهر السابق</span>
+        </button>
+        <h4 class="current-month">${arabicMonths[selectedMonth]} ${arNum(selectedYear)}</h4>
+        <button class="btn ghost sm" onclick="navigateAttendanceMonth(${nextYear}, ${nextMonth})">
+          <span>الشهر التالي</span>${I.forward}
+        </button>
+      </div>
+      
+      <!-- Calendar -->
+      <div class="attendance-calendar">
+        <!-- Day headers -->
+        <div class="calendar-header">
+          ${arabicDays.map(day => `<div class="header-day">${day}</div>`).join('')}
+        </div>
+        
+        <!-- Calendar grid -->
+        <div class="calendar-grid">
+          ${calendarDays}
+        </div>
+      </div>
+      
+      ${STATE.user?.role === 'teacher' ? `
+        <div class="attendance-legend mt-lg">
+          <div class="legend-title">تعليمات:</div>
+          <ul class="text-sm text-muted">
+            <li>انقري على أي يوم لتسجيل الحضور أو الغياب</li>
+            <li><strong>ح</strong> = حاضر (أخضر)</li>
+            <li><strong>غ</strong> = غائب (أحمر)</li>
+            <li>يتم حفظ التسجيل تلقائيًا وسيظهر لجميع المعلمات</li>
+          </ul>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
 /* =========================================================
-   ATTENDANCE
+   ATTENDANCE (Old function - keeping for backward compatibility)
    ========================================================= */
 function attendanceCard(st) {
   const att = STATE.data.attendance.filter(a => a.studentId === st.id);
@@ -2502,48 +2642,137 @@ function attendanceCard(st) {
 function viewAttendance() {
   const me = STATE.user;
   const myStudents = STATE.data.students.filter(s => !s.archived); // Show ALL students
+  
+  // Get selected month from URL params or default to current month
+  const params = new URLSearchParams((location.hash.split('?')[1]) || '');
+  const currentDate = new Date();
+  const selectedYear = parseInt(params.get('year')) || currentDate.getFullYear();
+  const selectedMonth = parseInt(params.get('month')) || currentDate.getMonth();
+  
+  // Arabic months
+  const arabicMonths = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ];
+  
+  // Calculate days in selected month
+  const firstDay = new Date(selectedYear, selectedMonth, 1);
+  const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  
+  // Month navigation
+  const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+  const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+  const nextMonth = selectedMonth === 11 ? 0 : selectedMonth + 1;
+  const nextYear = selectedMonth === 11 ? selectedYear + 1 : selectedYear;
+  
+  // Build table rows for all students
+  const studentRows = myStudents.map(st => {
+    const attendance = (STATE.data.attendance || []).filter(a => a.studentId === st.id);
+    
+    // Filter attendance for selected month
+    const monthStart = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+    const monthEnd = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+    const monthAttendance = attendance.filter(a => a.date >= monthStart && a.date <= monthEnd);
+    
+    // Calculate statistics
+    const presentCount = monthAttendance.filter(a => a.status === 'present').length;
+    const absentCount = monthAttendance.filter(a => a.status === 'absent').length;
+    const totalMarked = presentCount + absentCount;
+    const presentPercentage = totalMarked > 0 ? Math.round((presentCount / totalMarked) * 100) : 0;
+    const absentPercentage = totalMarked > 0 ? Math.round((absentCount / totalMarked) * 100) : 0;
+    
+    // Build day cells
+    const dayCells = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const record = attendance.find(a => a.date === dateStr);
+      const status = record?.status || '';
+      const statusLabel = status === 'present' ? 'ح' : status === 'absent' ? 'غ' : '—';
+      const statusClass = status === 'present' ? 'present' : status === 'absent' ? 'absent' : '';
+      
+      dayCells.push(`
+        <td class="attendance-cell ${statusClass}">
+          ${statusLabel}
+        </td>
+      `);
+    }
+    
+    return `
+      <tr>
+        <td class="student-name-cell">
+          <a href="#/teacher/student/${st.id}?tab=attendance" style="color:inherit;text-decoration:none">
+            ${esc(st.name)}
+          </a>
+        </td>
+        ${dayCells.join('')}
+        <td class="stat-cell present-stat">${arNum(presentCount)}</td>
+        <td class="stat-cell absent-stat">${arNum(absentCount)}</td>
+        <td class="stat-cell">${arNum(presentPercentage)}%</td>
+        <td class="stat-cell">${arNum(absentPercentage)}%</td>
+      </tr>
+    `;
+  }).join('');
+  
+  // Build day headers
+  const dayHeaders = [];
+  for (let day = 1; day <= daysInMonth; day++) {
+    dayHeaders.push(`<th class="day-header">${arNum(day)}</th>`);
+  }
+  
   return `
     <div class="page-head">
       <div>
-        <h1>الحضور</h1>
-        <div class="sub">سجل الحضور والغياب لطلابك</div>
-      </div>
-      <div class="row">
-        <button class="btn ghost">${I.calendar}<span>${fmtDate(new Date().toISOString().slice(0,10))}</span></button>
-        <button class="btn">${I.check}<span>تسجيل اليوم</span></button>
+        <h1>📅 كشف حضور وغياب الطالبات</h1>
+        <div class="sub">سجل شامل لحضور جميع الطالبات</div>
       </div>
     </div>
 
-    <div class="card mb-md">
-      <div class="card-title"><h3>تسجيل سريع — اليوم</h3></div>
-      <table class="tbl">
-        <thead><tr><th>الطالب</th><th>الحالة</th><th>ملاحظة</th></tr></thead>
-        <tbody>
-          ${myStudents.map(st => `
+    <!-- Month Navigator -->
+    <div class="card mb-lg">
+      <div class="bulk-month-navigator">
+        <button class="btn ghost" onclick="navigateBulkAttendanceMonth(${prevYear}, ${prevMonth})">
+          ${I.back}<span>الشهر السابق</span>
+        </button>
+        <h3 class="current-month-title">${arabicMonths[selectedMonth]} ${arNum(selectedYear)}</h3>
+        <button class="btn ghost" onclick="navigateBulkAttendanceMonth(${nextYear}, ${nextMonth})">
+          <span>الشهر التالي</span>${I.forward}
+        </button>
+      </div>
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="card">
+      <div class="attendance-table-wrapper">
+        <table class="attendance-bulk-table">
+          <thead>
             <tr>
-              <td>
-                <a class="row" href="#/teacher/student/${st.id}" style="color:inherit">
-                  ${avatar(st, 'sm')}
-                  <span class="text-bold text-sm">${esc(st.name)}</span>
-                </a>
-              </td>
-              <td>
-                <div class="row">
-                  <button class="chip" data-att="${st.id}-present">حضور</button>
-                  <button class="chip" data-att="${st.id}-late">تأخير</button>
-                  <button class="chip" data-att="${st.id}-absent">غياب</button>
-                  <button class="chip" data-att="${st.id}-excused">استئذان</button>
-                </div>
-              </td>
-              <td><input style="background:var(--bg-2);border:none;padding:8px 12px;border-radius:10px;width:100%" placeholder="—"></td>
+              <th class="student-header sticky-col">اسم الطالبة</th>
+              ${dayHeaders.join('')}
+              <th class="stat-header">إجمالي الحضور</th>
+              <th class="stat-header">إجمالي الغياب</th>
+              <th class="stat-header">نسبة الحضور</th>
+              <th class="stat-header">نسبة الغياب</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${studentRows}
+          </tbody>
+        </table>
+      </div>
     </div>
-
-    <div class="grid cols-2">
-      ${myStudents.slice(0, 4).map(st => attendanceCard(st)).join('')}
+    
+    <!-- Legend -->
+    <div class="card mt-lg">
+      <div class="card-title">
+        <h4>تعليمات:</h4>
+      </div>
+      <ul class="text-sm text-muted">
+        <li><strong>ح</strong> = حاضر (يظهر بالأخضر)</li>
+        <li><strong>غ</strong> = غائب (يظهر بالأحمر)</li>
+        <li><strong>—</strong> = لم يتم التسجيل</li>
+        <li>انقري على اسم الطالبة للانتقال إلى صفحة الحضور الشخصية لتسجيل الحضور والغياب</li>
+      </ul>
     </div>
   `;
 }
@@ -9194,6 +9423,108 @@ function goalEvalRowTemplate(goalText, idx) {
   `;
 }
 
+/* =========================================================
+   ATTENDANCE FUNCTIONS
+   ========================================================= */
+
+// Navigate to different month in attendance calendar
+function navigateAttendanceMonth(year, month) {
+  const currentPath = location.hash.split('?')[0];
+  const studentId = currentPath.split('/').pop();
+  location.hash = `${currentPath}?tab=attendance&year=${year}&month=${month}`;
+}
+
+// Navigate to different month in bulk attendance view
+function navigateBulkAttendanceMonth(year, month) {
+  location.hash = `#/teacher/attendance?year=${year}&month=${month}`;
+}
+
+// Toggle attendance status for a day
+async function toggleAttendance(studentId, dateStr) {
+  if (STATE.user?.role !== 'teacher') return;
+  
+  const student = studentBy(studentId);
+  if (!student) return;
+  
+  // Find existing record
+  const existingIndex = STATE.data.attendance.findIndex(
+    a => a.studentId === studentId && a.date === dateStr
+  );
+  
+  let newStatus;
+  if (existingIndex >= 0) {
+    const current = STATE.data.attendance[existingIndex].status;
+    // Cycle: absent -> present -> (remove)
+    if (current === 'absent') {
+      newStatus = 'present';
+    } else {
+      // Remove record
+      STATE.data.attendance.splice(existingIndex, 1);
+      persistState();
+      
+      // Update Supabase
+      const { error } = await supabase
+        .from('attendance')
+        .delete()
+        .eq('student_id', studentId)
+        .eq('date', dateStr);
+      
+      if (error) {
+        console.error('Error deleting attendance:', error);
+        toast('حدث خطأ في حذف السجل', 'error');
+      } else {
+        toast('تم إلغاء التسجيل', 'success');
+        handleRoute(); // Refresh view
+      }
+      return;
+    }
+  } else {
+    // New record - default to absent
+    newStatus = 'absent';
+  }
+  
+  // Create or update record
+  const record = {
+    id: existingIndex >= 0 ? STATE.data.attendance[existingIndex].id : crypto.randomUUID(),
+    studentId,
+    date: dateStr,
+    status: newStatus,
+    teacherId: STATE.user.id,
+    schoolId: STATE.user.school_id,
+    updatedAt: new Date().toISOString()
+  };
+  
+  if (existingIndex >= 0) {
+    STATE.data.attendance[existingIndex] = record;
+  } else {
+    STATE.data.attendance.push(record);
+  }
+  
+  persistState();
+  
+  // Update Supabase
+  const { error } = await supabase
+    .from('attendance')
+    .upsert({
+      id: record.id,
+      student_id: record.studentId,
+      date: record.date,
+      status: record.status,
+      teacher_id: record.teacherId,
+      school_id: record.schoolId,
+      updated_at: record.updatedAt
+    }, { onConflict: 'student_id,date' });
+  
+  if (error) {
+    console.error('Error saving attendance:', error);
+    toast('حدث خطأ في حفظ الحضور', 'error');
+  } else {
+    const statusLabel = newStatus === 'present' ? 'حاضر' : 'غائب';
+    toast(`تم تسجيل: ${statusLabel}`, 'success');
+    handleRoute(); // Refresh view
+  }
+}
+
 function openAddSessionModal(sid) {
   const st = studentBy(sid);
   const today = new Date().toISOString().slice(0, 10);
@@ -11825,6 +12156,37 @@ async function loadDataFromSupabase() {
     
     // ========== END LOAD NEW FEATURES DATA ==========
     
+    // Load attendance records
+    let attendanceQuery = window.supabaseClient
+      .from('attendance')
+      .select('*')
+      .eq('school_id', STATE.user.school_id);
+    
+    // Students see their own attendance
+    if (STATE.user.role === 'student') {
+      attendanceQuery = attendanceQuery.eq('student_id', STATE.user.id);
+    }
+    
+    // Parents see their child's attendance
+    if (STATE.user.role === 'parent' && STATE.user.student_id) {
+      attendanceQuery = attendanceQuery.eq('student_id', STATE.user.student_id);
+    }
+    
+    const { data: attendance } = await attendanceQuery;
+    if (attendance) {
+      STATE.data.attendance = attendance.map(a => ({
+        id: a.id,
+        studentId: a.student_id,
+        date: a.date,
+        status: a.status,
+        teacherId: a.teacher_id,
+        schoolId: a.school_id,
+        createdAt: a.created_at,
+        updatedAt: a.updated_at
+      }));
+      console.log('✅ Loaded attendance records:', attendance.length);
+    }
+    
     // ✅ Setup realtime subscriptions for messages
     setupRealtimeSubscriptions();
   } catch (error) {
@@ -11912,6 +12274,75 @@ function setupRealtimeSubscriptions() {
     )
     .subscribe((status) => {
       console.log('📡 Realtime status:', status);
+    });
+  
+  // Subscribe to attendance changes
+  const attendanceChannel = window.supabaseClient
+    .channel('attendance-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*', // Listen to INSERT, UPDATE, DELETE
+        schema: 'public',
+        table: 'attendance',
+        filter: `school_id=eq.${STATE.user.school_id}`
+      },
+      (payload) => {
+        console.log('📅 Attendance change received via realtime:', payload);
+        
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        
+        if (eventType === 'INSERT') {
+          // Add new attendance record
+          const existingIndex = STATE.data.attendance.findIndex(a => a.id === newRecord.id);
+          if (existingIndex === -1) {
+            STATE.data.attendance.push({
+              id: newRecord.id,
+              studentId: newRecord.student_id,
+              date: newRecord.date,
+              status: newRecord.status,
+              teacherId: newRecord.teacher_id,
+              schoolId: newRecord.school_id,
+              createdAt: newRecord.created_at,
+              updatedAt: newRecord.updated_at
+            });
+            console.log('✅ New attendance record added to local state');
+          }
+        } else if (eventType === 'UPDATE') {
+          // Update existing attendance record
+          const index = STATE.data.attendance.findIndex(a => a.id === newRecord.id);
+          if (index !== -1) {
+            STATE.data.attendance[index] = {
+              id: newRecord.id,
+              studentId: newRecord.student_id,
+              date: newRecord.date,
+              status: newRecord.status,
+              teacherId: newRecord.teacher_id,
+              schoolId: newRecord.school_id,
+              createdAt: newRecord.created_at,
+              updatedAt: newRecord.updated_at
+            };
+            console.log('✅ Attendance record updated in local state');
+          }
+        } else if (eventType === 'DELETE') {
+          // Remove deleted attendance record
+          const index = STATE.data.attendance.findIndex(a => a.id === oldRecord.id);
+          if (index !== -1) {
+            STATE.data.attendance.splice(index, 1);
+            console.log('✅ Attendance record removed from local state');
+          }
+        }
+        
+        // Refresh current view if on attendance page
+        const currentHash = location.hash;
+        if (currentHash.includes('/attendance') || currentHash.includes('tab=attendance')) {
+          console.log('🔄 Refreshing attendance view...');
+          handleRoute();
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log('📡 Attendance realtime status:', status);
     });
 }
 
