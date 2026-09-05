@@ -9456,15 +9456,19 @@ async function toggleAttendance(studentId, dateStr) {
   );
   
   let newStatus;
+  let operation = 'create'; // create, update, or delete
+  
   if (existingIndex >= 0) {
     const current = STATE.data.attendance[existingIndex].status;
     // Cycle: absent -> present -> (remove)
     if (current === 'absent') {
       newStatus = 'present';
+      operation = 'update';
     } else {
       // Remove record
       STATE.data.attendance.splice(existingIndex, 1);
       persistState();
+      operation = 'delete';
       
       // Update Supabase
       const { error } = await supabase
@@ -9476,15 +9480,18 @@ async function toggleAttendance(studentId, dateStr) {
       if (error) {
         console.error('Error deleting attendance:', error);
         toast('حدث خطأ في حذف السجل', 'error');
-      } else {
-        toast('تم إلغاء التسجيل', 'success');
-        handleRoute(); // Refresh view
+        return;
       }
+      
+      // Update UI instantly
+      updateAttendanceDayUI(dateStr, '');
+      toast('تم إلغاء التسجيل', 'success');
       return;
     }
   } else {
     // New record - default to absent
     newStatus = 'absent';
+    operation = 'create';
   }
   
   // Create or update record
@@ -9506,7 +9513,7 @@ async function toggleAttendance(studentId, dateStr) {
   persistState();
   
   // Update Supabase
-  const { error} = await supabase
+  const { error } = await supabase
     .from('attendance')
     .upsert({
       id: record.id,
@@ -9520,11 +9527,98 @@ async function toggleAttendance(studentId, dateStr) {
   if (error) {
     console.error('Error saving attendance:', error);
     toast('حدث خطأ في حفظ الحضور', 'error');
-  } else {
-    const statusLabel = newStatus === 'present' ? 'حاضر' : 'غائب';
-    toast(`تم تسجيل: ${statusLabel}`, 'success');
-    handleRoute(); // Refresh view
+    return;
   }
+  
+  // Update UI instantly
+  updateAttendanceDayUI(dateStr, newStatus);
+  
+  const statusLabel = newStatus === 'present' ? 'حاضر' : 'غائب';
+  toast(`تم تسجيل: ${statusLabel}`, 'success');
+}
+
+// Helper function to update day UI without reload
+function updateAttendanceDayUI(dateStr, status) {
+  const dayEl = document.querySelector(`[data-date="${dateStr}"]`);
+  if (!dayEl) return;
+  
+  // Remove all status classes
+  dayEl.classList.remove('marked', 'present', 'absent');
+  
+  // Find status div
+  let statusDiv = dayEl.querySelector('.day-status');
+  
+  if (status === '') {
+    // Remove status
+    if (statusDiv) statusDiv.remove();
+  } else {
+    // Add new status
+    dayEl.classList.add('marked', status);
+    
+    const statusLabel = status === 'present' ? 'ح' : 'غ';
+    
+    if (statusDiv) {
+      statusDiv.textContent = statusLabel;
+    } else {
+      statusDiv = document.createElement('div');
+      statusDiv.className = 'day-status';
+      statusDiv.textContent = statusLabel;
+      dayEl.appendChild(statusDiv);
+    }
+  }
+  
+  // Update statistics
+  updateAttendanceStats();
+}
+
+// Helper function to recalculate and update statistics
+function updateAttendanceStats() {
+  const params = new URLSearchParams((location.hash.split('?')[1]) || '');
+  const currentPath = location.hash.split('?')[0];
+  const studentId = currentPath.split('/').pop();
+  
+  if (!studentId) return;
+  
+  const currentDate = new Date();
+  const selectedYear = parseInt(params.get('year')) || currentDate.getFullYear();
+  const selectedMonth = parseInt(params.get('month')) || currentDate.getMonth();
+  
+  // Get attendance for this student
+  const attendance = (STATE.data.attendance || []).filter(a => a.studentId === studentId);
+  
+  // Calculate for selected month
+  const firstDay = new Date(selectedYear, selectedMonth, 1);
+  const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  
+  const monthStart = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+  const monthEnd = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+  const monthAttendance = attendance.filter(a => a.date >= monthStart && a.date <= monthEnd);
+  
+  const presentCount = monthAttendance.filter(a => a.status === 'present').length;
+  const absentCount = monthAttendance.filter(a => a.status === 'absent').length;
+  const totalMarked = presentCount + absentCount;
+  const presentPercentage = totalMarked > 0 ? Math.round((presentCount / totalMarked) * 100) : 0;
+  const absentPercentage = totalMarked > 0 ? Math.round((absentCount / totalMarked) * 100) : 0;
+  
+  // Update stat boxes
+  const statBoxes = document.querySelectorAll('.stat-box');
+  statBoxes.forEach(box => {
+    if (box.classList.contains('present')) {
+      const valueEl = box.querySelector('.stat-value');
+      const percentEl = box.querySelector('.stat-percentage');
+      if (valueEl) valueEl.textContent = arNum(presentCount) + ' يوم';
+      if (percentEl) percentEl.textContent = arNum(presentPercentage) + '%';
+    } else if (box.classList.contains('absent')) {
+      const valueEl = box.querySelector('.stat-value');
+      const percentEl = box.querySelector('.stat-percentage');
+      if (valueEl) valueEl.textContent = arNum(absentCount) + ' يوم';
+      if (percentEl) percentEl.textContent = arNum(absentPercentage) + '%';
+    } else if (box.classList.contains('total')) {
+      const valueEl = box.querySelector('.stat-value');
+      if (valueEl) valueEl.textContent = arNum(totalMarked) + ' يوم';
+    }
+  });
 }
 
 function openAddSessionModal(sid) {
