@@ -2531,8 +2531,7 @@ function renderAttendanceTab(st) {
     calendarDays += `
       <div class="attendance-day ${statusClass} ${clickable}" 
            data-date="${dateStr}" 
-           data-student-id="${st.id}"
-           ${clickable ? `onclick="toggleAttendance('${st.id}', '${dateStr}')"` : ''}>
+           data-student-id="${st.id}">
         <div class="day-number">${arNum(day)}</div>
         ${statusLabel ? `<div class="day-status">${statusLabel}</div>` : ''}
       </div>
@@ -12558,6 +12557,18 @@ function handleTypingInput(e) {
 window.addEventListener('DOMContentLoaded', async () => {
   // Initialize data structures
   initData();
+  
+  // Setup event delegation for attendance calendar
+  document.addEventListener('click', (e) => {
+    const dayEl = e.target.closest('.attendance-day.clickable');
+    if (dayEl) {
+      const studentId = dayEl.getAttribute('data-student-id');
+      const date = dayEl.getAttribute('data-date');
+      if (studentId && date) {
+        toggleAttendance(studentId, date);
+      }
+    }
+  });
 
   // If user just logged out, skip session restore and show login
   if (sessionStorage.getItem('athr-logged-out')) {

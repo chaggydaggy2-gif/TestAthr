@@ -4078,7 +4078,9 @@ body.modal-open { overflow: hidden; }
 }
 
 .attendance-day {
-  aspect-ratio: 1;
+  aspect-ratio: unset;
+  min-height: 45px;
+  height: 45px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--hair);
   background: var(--surface-2);
@@ -4088,6 +4090,7 @@ body.modal-open { overflow: hidden; }
   justify-content: center;
   position: relative;
   transition: all 0.2s ease;
+  padding: var(--sp-xs);
 }
 
 .attendance-day.empty {
