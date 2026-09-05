@@ -9491,7 +9491,7 @@ async function toggleAttendance(studentId, dateStr) {
       operation = 'delete';
       
       // Update Supabase
-      const { error } = await supabase
+      const { error } = await window.supabaseClient
         .from('attendance')
         .delete()
         .eq('student_id', studentId)
@@ -9533,7 +9533,7 @@ async function toggleAttendance(studentId, dateStr) {
   persistState();
   
   // Update Supabase
-  const { error } = await supabase
+  const { error } = await window.supabaseClient
     .from('attendance')
     .upsert({
       id: record.id,
