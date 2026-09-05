@@ -1429,9 +1429,11 @@ function viewStudentProfile(id, role) {
       <div class="tab ${activeTab==='plan'?'active':''}"     data-tab="plan">✨ الخطة الفردية</div>
       <div class="tab ${activeTab==='follow'?'active':''}"   data-tab="follow">📈 متابعة الطالبة</div>
       <div class="tab ${activeTab==='attendance'?'active':''}" data-tab="attendance">📅 الحضور والغياب</div>
-      <div class="tab ${activeTab==='memory'?'active':''}"   data-tab="memory">🧠 اختبار الذاكرة السمعية</div>
-      <div class="tab ${activeTab==='report'?'active':''}"   data-tab="report">📄 التقرير المبدئي</div>
-      <div class="tab ${activeTab==='assessment'?'active':''}" data-tab="assessment">📊 التقييم</div>
+      ${STATE.user?.teacher_type !== 'special_ed' ? `
+        <div class="tab ${activeTab==='memory'?'active':''}"   data-tab="memory">🧠 اختبار الذاكرة السمعية</div>
+        <div class="tab ${activeTab==='report'?'active':''}"   data-tab="report">📄 التقرير المبدئي</div>
+        <div class="tab ${activeTab==='assessment'?'active':''}" data-tab="assessment">📊 التقييم</div>
+      ` : ''}
       <div class="tab ${activeTab==='messages'?'active':''}" data-tab="messages">💬 رسائل ولي الأمر${(() => {
         const u = STATE.data.messages.filter(m => m.studentId === st.id && m.from === 'parent' && !m.read).length;
         return u ? ` <span class="tab-badge">${arNum(u)}</span>` : '';
@@ -1442,9 +1444,11 @@ function viewStudentProfile(id, role) {
     <div data-tab-content="plan"       ${activeTab!=='plan'?'class="hide"':''}>${renderPlanTab(st, plan)}</div>
     <div data-tab-content="follow"     ${activeTab!=='follow'?'class="hide"':''}>${renderFollowTab(st, plan)}</div>
     <div data-tab-content="attendance" ${activeTab!=='attendance'?'class="hide"':''}>${renderAttendanceTab(st)}</div>
-    <div data-tab-content="memory"     ${activeTab!=='memory'?'class="hide"':''}>${renderMemoryTestTab(st)}</div>
-    <div data-tab-content="report"     ${activeTab!=='report'?'class="hide"':''}>${renderInitialReportTab(st)}</div>
-    <div data-tab-content="assessment" ${activeTab!=='assessment'?'class="hide"':''}>${renderAssessmentTab(st)}</div>
+    ${STATE.user?.teacher_type !== 'special_ed' ? `
+      <div data-tab-content="memory"     ${activeTab!=='memory'?'class="hide"':''}>${renderMemoryTestTab(st)}</div>
+      <div data-tab-content="report"     ${activeTab!=='report'?'class="hide"':''}>${renderInitialReportTab(st)}</div>
+      <div data-tab-content="assessment" ${activeTab!=='assessment'?'class="hide"':''}>${renderAssessmentTab(st)}</div>
+    ` : ''}
     <div data-tab-content="messages"   ${activeTab!=='messages'?'class="hide"':''}>${renderMessagesTab(st)}</div>
   `;
 }
