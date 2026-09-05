@@ -2521,11 +2521,17 @@ function renderAttendanceTab(st) {
   // Days of month
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dateObj = new Date(selectedYear, selectedMonth, day);
     const record = attendance.find(a => a.date === dateStr);
     const status = record?.status || '';
     const statusLabel = status === 'present' ? 'ح' : status === 'absent' ? 'غ' : '';
     const statusClass = status ? `marked ${status}` : '';
-    const isPast = new Date(dateStr) <= currentDate;
+    
+    // Check if date is today or in the past (not future)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dateObj.setHours(0, 0, 0, 0);
+    const isPast = dateObj <= today;
     const clickable = STATE.user?.role === 'teacher' && isPast ? 'clickable' : '';
     
     calendarDays += `
@@ -9444,15 +9450,27 @@ function navigateBulkAttendanceMonth(year, month) {
 
 // Toggle attendance status for a day
 async function toggleAttendance(studentId, dateStr) {
-  if (STATE.user?.role !== 'teacher') return;
+  console.log('🖱️ toggleAttendance called:', { studentId, dateStr, role: STATE.user?.role });
+  
+  if (STATE.user?.role !== 'teacher') {
+    console.log('❌ Not a teacher, ignoring click');
+    return;
+  }
   
   const student = studentBy(studentId);
-  if (!student) return;
+  if (!student) {
+    console.log('❌ Student not found');
+    return;
+  }
+  
+  console.log('✅ Processing attendance toggle...');
   
   // Find existing record
   const existingIndex = STATE.data.attendance.findIndex(
     a => a.studentId === studentId && a.date === dateStr
   );
+  
+  console.log('📋 Existing record:', existingIndex >= 0 ? STATE.data.attendance[existingIndex] : 'none');
   
   let newStatus;
   let operation = 'create'; // create, update, or delete
@@ -9538,8 +9556,14 @@ async function toggleAttendance(studentId, dateStr) {
 
 // Helper function to update day UI without reload
 function updateAttendanceDayUI(dateStr, status) {
+  console.log('🎨 Updating UI for:', dateStr, 'status:', status);
   const dayEl = document.querySelector(`[data-date="${dateStr}"]`);
-  if (!dayEl) return;
+  if (!dayEl) {
+    console.log('❌ Day element not found for:', dateStr);
+    return;
+  }
+  
+  console.log('✅ Found day element, updating...');
   
   // Remove all status classes
   dayEl.classList.remove('marked', 'present', 'absent');
@@ -9550,6 +9574,7 @@ function updateAttendanceDayUI(dateStr, status) {
   if (status === '') {
     // Remove status
     if (statusDiv) statusDiv.remove();
+    console.log('🗑️ Removed status');
   } else {
     // Add new status
     dayEl.classList.add('marked', status);
@@ -9564,6 +9589,7 @@ function updateAttendanceDayUI(dateStr, status) {
       statusDiv.textContent = statusLabel;
       dayEl.appendChild(statusDiv);
     }
+    console.log('✅ Updated status to:', statusLabel);
   }
   
   // Update statistics
@@ -12562,10 +12588,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('click', (e) => {
     const dayEl = e.target.closest('.attendance-day.clickable');
     if (dayEl) {
+      console.log('📅 Attendance day clicked!', dayEl);
       const studentId = dayEl.getAttribute('data-student-id');
       const date = dayEl.getAttribute('data-date');
+      console.log('📊 Data:', { studentId, date });
       if (studentId && date) {
         toggleAttendance(studentId, date);
+      } else {
+        console.log('❌ Missing studentId or date');
       }
     }
   });
