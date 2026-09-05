@@ -55,13 +55,10 @@ ON public.attendance
 FOR INSERT
 TO authenticated
 WITH CHECK (
-    EXISTS (
-        SELECT 1 
+    auth.uid() IN (
+        SELECT u.id 
         FROM public.users u
-        JOIN public.students s ON s.school_id = u.school_id
-        WHERE u.id = auth.uid()
-        AND u.role = 'teacher'
-        AND s.id = attendance.student_id
+        WHERE u.role = 'teacher'
     )
 );
 
@@ -72,23 +69,17 @@ ON public.attendance
 FOR UPDATE
 TO authenticated
 USING (
-    EXISTS (
-        SELECT 1 
+    auth.uid() IN (
+        SELECT u.id 
         FROM public.users u
-        JOIN public.students s ON s.school_id = u.school_id
-        WHERE u.id = auth.uid()
-        AND u.role = 'teacher'
-        AND s.id = attendance.student_id
+        WHERE u.role = 'teacher'
     )
 )
 WITH CHECK (
-    EXISTS (
-        SELECT 1 
+    auth.uid() IN (
+        SELECT u.id 
         FROM public.users u
-        JOIN public.students s ON s.school_id = u.school_id
-        WHERE u.id = auth.uid()
-        AND u.role = 'teacher'
-        AND s.id = attendance.student_id
+        WHERE u.role = 'teacher'
     )
 );
 
