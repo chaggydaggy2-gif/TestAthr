@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS public.attendance (
     attendance_date DATE NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('present', 'absent')), -- 'present' = ح, 'absent' = غ
     teacher_id UUID NOT NULL REFERENCES public.users(id) ON DELETE SET NULL,
-    school_id UUID NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     
@@ -24,7 +23,7 @@ CREATE TABLE IF NOT EXISTS public.attendance (
 -- 2. Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_attendance_student_id ON public.attendance(student_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_date ON public.attendance(attendance_date);
-CREATE INDEX IF NOT EXISTS idx_attendance_school_id ON public.attendance(school_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_teacher_id ON public.attendance(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON public.attendance(student_id, attendance_date);
 
 -- 3. Enable Row Level Security
@@ -40,10 +39,12 @@ FOR SELECT
 TO authenticated
 USING (
     EXISTS (
-        SELECT 1 FROM public.users u
+        SELECT 1 
+        FROM public.users u
+        JOIN public.students s ON s.school_id = u.school_id
         WHERE u.id = auth.uid()
         AND u.role = 'teacher'
-        AND u.school_id = attendance.school_id
+        AND s.id = attendance.student_id
     )
 );
 
@@ -55,10 +56,12 @@ FOR INSERT
 TO authenticated
 WITH CHECK (
     EXISTS (
-        SELECT 1 FROM public.users u
+        SELECT 1 
+        FROM public.users u
+        JOIN public.students s ON s.school_id = u.school_id
         WHERE u.id = auth.uid()
         AND u.role = 'teacher'
-        AND u.school_id = attendance.school_id
+        AND s.id = attendance.student_id
     )
 );
 
@@ -70,18 +73,22 @@ FOR UPDATE
 TO authenticated
 USING (
     EXISTS (
-        SELECT 1 FROM public.users u
+        SELECT 1 
+        FROM public.users u
+        JOIN public.students s ON s.school_id = u.school_id
         WHERE u.id = auth.uid()
         AND u.role = 'teacher'
-        AND u.school_id = attendance.school_id
+        AND s.id = attendance.student_id
     )
 )
 WITH CHECK (
     EXISTS (
-        SELECT 1 FROM public.users u
+        SELECT 1 
+        FROM public.users u
+        JOIN public.students s ON s.school_id = u.school_id
         WHERE u.id = auth.uid()
         AND u.role = 'teacher'
-        AND u.school_id = attendance.school_id
+        AND s.id = attendance.student_id
     )
 );
 
@@ -93,10 +100,12 @@ FOR DELETE
 TO authenticated
 USING (
     EXISTS (
-        SELECT 1 FROM public.users u
+        SELECT 1 
+        FROM public.users u
+        JOIN public.students s ON s.school_id = u.school_id
         WHERE u.id = auth.uid()
         AND u.role = 'teacher'
-        AND u.school_id = attendance.school_id
+        AND s.id = attendance.student_id
     )
 );
 

@@ -9490,7 +9490,6 @@ async function toggleAttendance(studentId, dateStr) {
     date: dateStr,
     status: newStatus,
     teacherId: STATE.user.id,
-    schoolId: STATE.user.school_id,
     updatedAt: new Date().toISOString()
   };
   
@@ -9511,7 +9510,6 @@ async function toggleAttendance(studentId, dateStr) {
       attendance_date: record.date,
       status: record.status,
       teacher_id: record.teacherId,
-      school_id: record.schoolId,
       updated_at: record.updatedAt
     }, { onConflict: 'student_id,attendance_date' });
   
@@ -12159,8 +12157,7 @@ async function loadDataFromSupabase() {
     // Load attendance records
     let attendanceQuery = window.supabaseClient
       .from('attendance')
-      .select('*')
-      .eq('school_id', STATE.user.school_id);
+      .select('*');
     
     // Students see their own attendance
     if (STATE.user.role === 'student') {
@@ -12172,6 +12169,8 @@ async function loadDataFromSupabase() {
       attendanceQuery = attendanceQuery.eq('student_id', STATE.user.student_id);
     }
     
+    // Teachers see all attendance for students in their school (RLS handles this)
+    
     const { data: attendance } = await attendanceQuery;
     if (attendance) {
       STATE.data.attendance = attendance.map(a => ({
@@ -12180,7 +12179,6 @@ async function loadDataFromSupabase() {
         date: a.attendance_date,
         status: a.status,
         teacherId: a.teacher_id,
-        schoolId: a.school_id,
         createdAt: a.created_at,
         updatedAt: a.updated_at
       }));
@@ -12284,8 +12282,7 @@ function setupRealtimeSubscriptions() {
       {
         event: '*', // Listen to INSERT, UPDATE, DELETE
         schema: 'public',
-        table: 'attendance',
-        filter: `school_id=eq.${STATE.user.school_id}`
+        table: 'attendance'
       },
       (payload) => {
         console.log('📅 Attendance change received via realtime:', payload);
@@ -12302,7 +12299,6 @@ function setupRealtimeSubscriptions() {
               date: newRecord.attendance_date,
               status: newRecord.status,
               teacherId: newRecord.teacher_id,
-              schoolId: newRecord.school_id,
               createdAt: newRecord.created_at,
               updatedAt: newRecord.updated_at
             });
@@ -12318,7 +12314,6 @@ function setupRealtimeSubscriptions() {
               date: newRecord.attendance_date,
               status: newRecord.status,
               teacherId: newRecord.teacher_id,
-              schoolId: newRecord.school_id,
               createdAt: newRecord.created_at,
               updatedAt: newRecord.updated_at
             };
