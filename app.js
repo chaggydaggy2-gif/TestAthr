@@ -1352,9 +1352,19 @@ function studentTile(st) {
    ========================================================= */
 const FORM_TYPES = [
   { key: 'parentConsent',      name: 'موافقة ولي الأمر',     sub: 'الموافقة الرسمية على بدء الجلسات', icon: '✍️' },
+  { key: 'initialData',        name: 'البيانات الأولية',     sub: 'بيانات الطالبة الأساسية (مشتركة بين المعلمات)', icon: '📝', shared: true },
   { key: 'preAssessment',      name: 'التقييم القبلي',        sub: 'تقييم المستوى قبل بدء الخطة',       icon: '📋' },
   { key: 'speechTest',         name: 'اختبار النطق',          sub: 'تقييم نطق الأصوات والكلمات',        icon: '🗣️' },
   { key: 'auditoryMemoryTest', name: 'اختبار الذاكرة السمعية', sub: 'تقييم القدرة على تذكر الأصوات',     icon: '👂' },
+];
+
+// Special Ed Teacher specific forms
+const SPECIAL_ED_FORM_TYPES = [
+  { key: 'parentConsent',      name: 'موافقة ولي الأمر',     sub: 'الموافقة الرسمية على بدء الجلسات', icon: '✍️' },
+  { key: 'initialData',        name: 'البيانات الأولية',     sub: 'بيانات الطالبة الأساسية (مشتركة بين المعلمات)', icon: '📝', shared: true },
+  { key: 'medicalDiagnosis',   name: 'التشخيص الطبي والنفسي', sub: 'رفع ملف PDF للتشخيص الطبي',         icon: '🏥', isPDF: true },
+  { key: 'studentNotes',       name: 'ملاحظة الطالبة',        sub: 'ملاحظات دورية عن الطالبة',           icon: '📝', isNotes: true },
+  { key: 'diagnosticTest',     name: 'الاختبار التشخيصي',     sub: 'رفع ملف PDF للاختبار التشخيصي',      icon: '📊', isPDF: true },
 ];
 
 function viewStudentProfile(id, role) {
@@ -1655,16 +1665,39 @@ function viewStudentReport(id) {
 
 function renderFormsTab(st) {
   const forms = st.forms || {};
+  const user = STATE.user;
+  
+  // Determine which form types to show based on teacher type
+  const isSpecialEd = user.teacher_type === 'special_ed';
+  const formTypes = isSpecialEd ? SPECIAL_ED_FORM_TYPES : FORM_TYPES;
   
   console.log('📋 Rendering forms tab for:', st.name);
+  console.log('📋 Teacher type:', user.teacher_type);
   console.log('📋 Forms data:', forms);
-  console.log('📋 preAssessment:', forms.preAssessment);
   
   return `
     <div class="grid cols-2">
-      ${FORM_TYPES.map(ft => {
-        const data = forms[ft.key] || {};
-        const completed = data.signed || data.completed;
+      ${formTypes.map(ft => {
+        // For shared forms, check shared_initial_data
+        let data, completed;
+        
+        if (ft.key === 'initialData') {
+          data = st.shared_initial_data || {};
+          completed = data.completed || false;
+        } else if (ft.isPDF) {
+          // PDF forms - check special_ed_forms
+          const pdfData = st.special_ed_forms?.[ft.key];
+          completed = !!pdfData;
+          data = { pdfUrl: pdfData };
+        } else if (ft.isNotes) {
+          // Student notes - check special_ed_forms.student_notes
+          const notes = st.special_ed_forms?.student_notes || [];
+          completed = notes.length > 0;
+          data = { notes };
+        } else {
+          data = forms[ft.key] || {};
+          completed = data.signed || data.completed;
+        }
         
         console.log(`📋 Form ${ft.key}:`, {data, completed});
         
@@ -1672,29 +1705,57 @@ function renderFormsTab(st) {
           <div class="form-card ${completed ? 'is-done' : ''}">
             <div class="form-card-head">
               <div class="form-icon">${ft.icon}</div>
-              ${completed
+              ${ft.shared ? `<span class="form-status shared" title="مشتركة بين المعلمات">مشتركة</span>` : ''}
+              ${completed && !ft.shared
                 ? `<span class="form-status done">مكتمل</span>`
-                : `<span class="form-status pending">بانتظار</span>`}
+                : !ft.shared ? `<span class="form-status pending">بانتظار</span>` : ''}
             </div>
             <h3 class="form-card-title">${esc(ft.name)}</h3>
             ${completed && data.score !== undefined
               ? `<div class="form-card-score">${arNum(data.score)}<span>/100</span></div>`
               : `<p class="form-card-sub">${esc(ft.sub)}</p>`}
+            ${ft.isNotes && completed
+              ? `<p class="form-card-sub">${arNum(data.notes.length)} ملاحظة</p>`
+              : ''}
             <div class="row" style="gap:8px">
-              <button class="btn ${completed ? 'ghost' : 'soft'} block form-card-btn"
-                data-action="${completed ? 'view-form' : 'complete-form'}"
-                data-sid="${st.id}" data-fkey="${ft.key}">
-                ${completed ? I.eye : I.upload}
-                <span>${completed ? 'عرض' : 'إكمال'}</span>
-              </button>
-              ${completed ? `
-                <button class="btn ghost form-card-btn"
-                  data-action="complete-form"
+              ${ft.isPDF ? `
+                <button class="btn ${completed ? 'ghost' : 'soft'} block form-card-btn"
+                  data-action="${completed ? 'view-pdf' : 'upload-pdf'}"
                   data-sid="${st.id}" data-fkey="${ft.key}">
-                  ${I.edit}
-                  <span>تعديل</span>
+                  ${completed ? I.eye : I.upload}
+                  <span>${completed ? 'عرض' : 'رفع'}</span>
                 </button>
-              ` : ''}
+                ${completed ? `
+                  <button class="btn ghost form-card-btn"
+                    data-action="upload-pdf"
+                    data-sid="${st.id}" data-fkey="${ft.key}">
+                    ${I.upload}
+                    <span>تحديث</span>
+                  </button>
+                ` : ''}
+              ` : ft.isNotes ? `
+                <button class="btn soft block form-card-btn"
+                  data-action="manage-notes"
+                  data-sid="${st.id}">
+                  ${I.plus}
+                  <span>إدارة الملاحظات</span>
+                </button>
+              ` : `
+                <button class="btn ${completed ? 'ghost' : 'soft'} block form-card-btn"
+                  data-action="${completed ? 'view-form' : 'complete-form'}"
+                  data-sid="${st.id}" data-fkey="${ft.key}">
+                  ${completed ? I.eye : I.clipboard}
+                  <span>${completed ? 'عرض' : 'إكمال'}</span>
+                </button>
+                ${completed ? `
+                  <button class="btn ghost form-card-btn"
+                    data-action="complete-form"
+                    data-sid="${st.id}" data-fkey="${ft.key}">
+                    ${I.edit}
+                    <span>تعديل</span>
+                  </button>
+                ` : ''}
+              `}
             </div>
           </div>
         `;
@@ -1703,7 +1764,181 @@ function renderFormsTab(st) {
   `;
 }
 
+/* =========================================================
+   SPECIAL ED IEP (Different from Speech Teacher)
+   ========================================================= */
+
+function renderSpecialEdIEP(st) {
+  const iep = st.special_ed_iep || {};
+  const hasData = iep.current_level || iep.strengths || iep.needs || 
+                  (iep.semester_goals && iep.semester_goals.length > 0);
+  
+  if (!hasData) {
+    return `
+      <div class="card">
+        <div class="row mb-md" style="align-items:flex-start;gap:14px">
+          <div style="font-size:42px">✨</div>
+          <div style="flex:1">
+            <h3 style="font-size:18px">لم يتم إنشاء الخطة الفردية بعد</h3>
+            <p class="text-sm text-muted mt-sm">يمكنكِ إنشاء الخطة الفردية يدوياً، أو رفع ملف PDF جاهز</p>
+          </div>
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <button class="btn lg" data-action="create-special-ed-iep" data-sid="${st.id}">
+            ${I.clipboard}<span>إنشاء خطة فردية</span>
+          </button>
+          <button class="btn ghost lg" data-action="upload-iep-pdf" data-sid="${st.id}">
+            ${I.upload}<span>رفع PDF جاهز</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Calculate totals
+  const semesterGoalsCount = iep.semester_goals?.length || 0;
+  const shortTermGoalsCount = iep.short_term_goals?.length || 0;
+  const behavioralGoalsCount = iep.behavioral_goals?.length || 0;
+  
+  return `
+    <div class="row mb-md" style="gap:8px;flex-wrap:wrap">
+      <div class="row" style="flex:1;background:var(--mint-50);padding:10px 14px;border-radius:12px;gap:10px">
+        <div style="font-size:24px">📋</div>
+        <div style="flex:1">
+          <div class="text-bold text-sm">الخطة الفردية لـ ${esc(st.name)}</div>
+          <div class="text-xs text-muted">${arNum(semesterGoalsCount)} هدف فصلي • ${arNum(shortTermGoalsCount)} هدف قصير المدى • ${arNum(behavioralGoalsCount)} هدف سلوكي</div>
+        </div>
+      </div>
+      <button class="btn soft sm" data-action="edit-special-ed-iep" data-sid="${st.id}">${I.edit}<span>تعديل</span></button>
+      <button class="btn ghost sm" data-action="print-special-ed-iep" data-sid="${st.id}">${I.download}<span>طباعة</span></button>
+      ${iep.pdf_upload ? `
+        <button class="btn ghost sm" data-action="view-iep-pdf" data-sid="${st.id}">${I.eye}<span>عرض PDF</span></button>
+      ` : ''}
+    </div>
+
+    <div class="card mb-md">
+      <div class="card-title"><h3>📊 المستوى الحالي والاحتياجات</h3></div>
+      <div class="iep-section">
+        <div class="iep-field">
+          <div class="iep-label">المستوى الحالي للطالبة:</div>
+          <div class="iep-value">${esc(iep.current_level || '—')}</div>
+        </div>
+        <div class="row" style="gap:12px">
+          <div class="iep-field" style="flex:1">
+            <div class="iep-label">نقاط القوة:</div>
+            <div class="iep-value">${esc(iep.strengths || '—')}</div>
+          </div>
+          <div class="iep-field" style="flex:1">
+            <div class="iep-label">نقاط الاحتياج:</div>
+            <div class="iep-value">${esc(iep.needs || '—')}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    ${semesterGoalsCount > 0 ? `
+      <div class="card mb-md">
+        <div class="card-title"><h3>🎯 الأهداف الفصلية</h3></div>
+        <div class="goals-list">
+          ${iep.semester_goals.map((goal, idx) => `
+            <div class="goal-card semester-goal">
+              <div class="goal-number">${arNum(idx + 1)}</div>
+              <div class="goal-content">
+                <div class="goal-text">${esc(goal.text)}</div>
+                ${goal.short_term_ids && goal.short_term_ids.length > 0 ? `
+                  <div class="goal-meta">مرتبط بـ ${arNum(goal.short_term_ids.length)} هدف قصير المدى</div>
+                ` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${shortTermGoalsCount > 0 ? `
+      <div class="card mb-md">
+        <div class="card-title"><h3>📝 الأهداف قصيرة المدى</h3></div>
+        <div class="goals-list">
+          ${iep.short_term_goals.map((goal, idx) => `
+            <div class="goal-card short-term-goal">
+              <div class="goal-number">${arNum(idx + 1)}</div>
+              <div class="goal-content">
+                <div class="goal-text">${esc(goal.text)}</div>
+                ${goal.semester_goal_id ? `
+                  <div class="goal-meta">يخدم الهدف الفصلي #${arNum(goal.semester_goal_id + 1)}</div>
+                ` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${behavioralGoalsCount > 0 ? `
+      <div class="card mb-md">
+        <div class="card-title"><h3>🎭 الأهداف السلوكية/التعليمية</h3></div>
+        <div class="goals-list">
+          ${iep.behavioral_goals.map((goal, idx) => `
+            <div class="goal-card behavioral-goal">
+              <div class="goal-number">${arNum(idx + 1)}</div>
+              <div class="goal-content">
+                <div class="goal-text">${esc(goal.text)}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${iep.teaching_tools && iep.teaching_tools.length > 0 ? `
+      <div class="card mb-md">
+        <div class="card-title"><h3>🛠️ الوسائل والأدوات التعليمية</h3></div>
+        <div class="tags-wrap">
+          ${iep.teaching_tools.map(tool => `<span class="tag">${esc(tool)}</span>`).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${iep.teaching_strategies && iep.teaching_strategies.length > 0 ? `
+      <div class="card mb-md">
+        <div class="card-title"><h3>📚 استراتيجيات وطرق التدريس</h3></div>
+        <div class="tags-wrap">
+          ${iep.teaching_strategies.map(strategy => `<span class="tag">${esc(strategy)}</span>`).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${iep.start_date || iep.end_date ? `
+      <div class="card">
+        <div class="card-title"><h3>📅 التواريخ</h3></div>
+        <div class="row" style="gap:20px">
+          ${iep.start_date ? `
+            <div class="iep-field">
+              <div class="iep-label">تاريخ البدء:</div>
+              <div class="iep-value">${fmtDate(iep.start_date)}</div>
+            </div>
+          ` : ''}
+          ${iep.end_date ? `
+            <div class="iep-field">
+              <div class="iep-label">تاريخ الانتهاء:</div>
+              <div class="iep-value">${fmtDate(iep.end_date)}</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    ` : ''}
+  `;
+}
+
 function renderPlanTab(st, plan) {
+  const user = STATE.user;
+  
+  // Check if this is a Special Ed teacher
+  if (user.teacher_type === 'special_ed') {
+    return renderSpecialEdIEP(st);
+  }
+  
+  // Original speech teacher plan view
   // Safely check for groups
   const hasGroups = plan && plan.groups && Array.isArray(plan.groups) && plan.groups.length > 0;
   const preDone = st.forms?.preAssessment?.completed;
@@ -1796,7 +2031,94 @@ function renderPlanTab(st, plan) {
   `;
 }
 
+/* =========================================================
+   SPECIAL ED FOLLOW-UP / SESSION PLANNING
+   ========================================================= */
+
+function renderSpecialEdFollowUp(st) {
+  const sessions = st.special_ed_sessions || [];
+  const sortedSessions = [...sessions].sort((a, b) => b.date_from.localeCompare(a.date_from));
+  
+  return `
+    <div class="card mb-md">
+      <div class="card-title">
+        <h3>📈 سجل جلسات المتابعة</h3>
+        <button class="btn soft sm" data-action="add-special-ed-session" data-sid="${st.id}">
+          ${I.plus}<span>إضافة جلسة</span>
+        </button>
+      </div>
+      
+      ${sortedSessions.length === 0 ? `
+        <div class="empty">
+          <div class="ico">${I.calendar}</div>
+          <h4>لا توجد جلسات متابعة</h4>
+          <p>اضغطي "إضافة جلسة" لتسجيل أول جلسة متابعة</p>
+        </div>
+      ` : `
+        <div class="sessions-timeline">
+          ${sortedSessions.map((session, idx) => renderSpecialEdSessionCard(session, idx, st.id)).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function renderSpecialEdSessionCard(session, idx, studentId) {
+  const goalsCount = session.procedural_goals?.length || 0;
+  const completedGoals = (session.procedural_goals || []).filter(g => g.evaluation === 'achieved').length;
+  
+  return `
+    <div class="special-ed-session-card">
+      <div class="session-card-header">
+        <div>
+          <div class="session-card-title">جلسة ${arNum(idx + 1)}</div>
+          <div class="session-card-date">${fmtDate(session.date_from)} - ${fmtDate(session.date_to)}</div>
+        </div>
+        <div class="row" style="gap:8px">
+          <button class="btn soft sm" data-action="view-special-ed-session" data-sid="${studentId}" data-idx="${idx}">
+            ${I.eye}<span>عرض</span>
+          </button>
+          <button class="btn ghost sm" data-action="edit-special-ed-session" data-sid="${studentId}" data-idx="${idx}">
+            ${I.edit}<span>تعديل</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="session-card-body">
+        ${session.short_term_goal ? `
+          <div class="session-field">
+            <span class="session-label">الهدف قصير المدى:</span>
+            <span class="session-value">${esc(session.short_term_goal)}</span>
+          </div>
+        ` : ''}
+        
+        ${goalsCount > 0 ? `
+          <div class="session-field">
+            <span class="session-label">الأهداف الإجرائية:</span>
+            <span class="session-value">${arNum(goalsCount)} أهداف (${arNum(completedGoals)} متحقق)</span>
+          </div>
+        ` : ''}
+        
+        ${session.teaching_notes ? `
+          <div class="session-field">
+            <span class="session-label">ملاحظات المعلمة:</span>
+            <div class="session-notes">${esc(session.teaching_notes).slice(0, 150)}${session.teaching_notes.length > 150 ? '...' : ''}</div>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
 function renderFollowTab(st, plan) {
+  const user = STATE.user;
+  
+  // Check if this is a Special Ed teacher
+  if (user.teacher_type === 'special_ed') {
+    return renderSpecialEdFollowUp(st);
+  }
+  
+  // Original speech teacher follow-up view
   const logs = STATE.data.sessionLogs
     .filter(l => l.studentId === st.id)
     .sort((a,b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
@@ -4295,6 +4617,66 @@ document.addEventListener('click', async (e) => {
       openFormModal(sid, fkey, /*viewOnly*/ true);
       return;
     }
+    if (a === 'upload-pdf') {
+      const sid = action.getAttribute('data-sid');
+      const fkey = action.getAttribute('data-fkey');
+      openPDFUploadModal(sid, fkey);
+      return;
+    }
+    if (a === 'view-pdf') {
+      const sid = action.getAttribute('data-sid');
+      const fkey = action.getAttribute('data-fkey');
+      viewPDFDocument(sid, fkey);
+      return;
+    }
+    if (a === 'manage-notes') {
+      const sid = action.getAttribute('data-sid');
+      openStudentNotesModal(sid);
+      return;
+    }
+    if (a === 'add-student-note') {
+      const sid = action.getAttribute('data-sid');
+      openAddStudentNoteModal(sid);
+      return;
+    }
+    if (a === 'delete-student-note') {
+      const sid = action.getAttribute('data-sid');
+      const idx = parseInt(action.getAttribute('data-idx'));
+      deleteStudentNote(sid, idx);
+      return;
+    }
+    if (a === 'create-special-ed-iep' || a === 'edit-special-ed-iep') {
+      const sid = action.getAttribute('data-sid');
+      openSpecialEdIEPModal(sid);
+      return;
+    }
+    if (a === 'upload-iep-pdf') {
+      const sid = action.getAttribute('data-sid');
+      openIEPPDFUploadModal(sid);
+      return;
+    }
+    if (a === 'view-iep-pdf') {
+      const sid = action.getAttribute('data-sid');
+      viewIEPPDF(sid);
+      return;
+    }
+    if (a === 'add-special-ed-session') {
+      const sid = action.getAttribute('data-sid');
+      openSpecialEdSessionModal(sid);
+      return;
+    }
+    if (a === 'view-special-ed-session') {
+      const sid = action.getAttribute('data-sid');
+      const idx = parseInt(action.getAttribute('data-idx'));
+      viewSpecialEdSession(sid, idx);
+      return;
+    }
+    if (a === 'edit-special-ed-session') {
+      const sid = action.getAttribute('data-sid');
+      const idx = parseInt(action.getAttribute('data-idx'));
+      openSpecialEdSessionModal(sid, idx);
+      return;
+    }
     if (a === 'add-session') {
       const sid = action.getAttribute('data-sid');
       openAddSessionModal(sid);
@@ -6743,14 +7125,625 @@ const AUDITORY_MEMORY_TASKS = [
   { id: 'order',  label: 'تنفيذ ٣ تعليمات بالترتيب', max: 3 },
 ];
 
+/* =========================================================
+   PDF UPLOAD & STUDENT NOTES FUNCTIONS
+   ========================================================= */
+
+function openPDFUploadModal(sid, fkey) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  const formType = SPECIAL_ED_FORM_TYPES.find(f => f.key === fkey);
+  if (!formType) return;
+  
+  const existingPDF = st.special_ed_forms?.[fkey];
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>${formType.icon} ${esc(formType.name)} — ${esc(st.name)}</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="upload-pdf-form" data-sid="${st.id}" data-fkey="${fkey}">
+      <div class="alert info mb-md">
+        ${I.upload}
+        <div>
+          <div class="text-sm text-bold">رفع ملف PDF</div>
+          <div class="text-xs text-muted mt-sm">اختاري ملف PDF من جهازك (الحد الأقصى: 10 ميجابايت)</div>
+        </div>
+      </div>
+      
+      ${existingPDF ? `
+        <div class="alert mb-md" style="background:var(--positive-50);border-color:var(--positive)">
+          ${I.checkCircle}
+          <div>
+            <div class="text-sm text-bold">تم رفع ملف سابقاً</div>
+            <div class="text-xs text-muted mt-sm">سيتم استبدال الملف السابق عند رفع ملف جديد</div>
+          </div>
+        </div>
+      ` : ''}
+      
+      <div class="field">
+        <label>اختر ملف PDF <span style="color:var(--critical)">*</span></label>
+        <input type="file" name="pdfFile" accept=".pdf,application/pdf" required>
+        <div class="text-xs text-muted mt-sm">صيغة PDF فقط، الحد الأقصى 10 ميجابايت</div>
+      </div>
+      
+      <div class="field">
+        <label>ملاحظات (اختياري)</label>
+        <textarea name="notes" rows="3" placeholder="أي ملاحظات عن هذا الملف"></textarea>
+      </div>
+      
+      <button type="submit" class="btn lg block">${I.upload}<span>رفع الملف</span></button>
+    </form>
+  `);
+}
+
+async function viewPDFDocument(sid, fkey) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  const pdfUrl = st.special_ed_forms?.[fkey];
+  
+  if (!pdfUrl) {
+    toast('لم يتم رفع ملف بعد', 'error');
+    return;
+  }
+  
+  try {
+    // Get signed URL from Supabase Storage
+    const { data, error } = await window.supabaseClient.storage
+      .from('student-documents')
+      .createSignedUrl(pdfUrl, 3600); // Valid for 1 hour
+    
+    if (error) throw error;
+    
+    // Open in new tab
+    window.open(data.signedUrl, '_blank');
+  } catch (error) {
+    console.error('Error viewing PDF:', error);
+    toast('حدث خطأ أثناء فتح الملف', 'error');
+  }
+}
+
+function openStudentNotesModal(sid) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  const notes = st.special_ed_forms?.student_notes || [];
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>📝 ملاحظات الطالبة — ${esc(st.name)}</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    
+    <div class="mb-md">
+      <button class="btn" data-action="add-student-note" data-sid="${st.id}">
+        ${I.plus}<span>إضافة ملاحظة جديدة</span>
+      </button>
+    </div>
+    
+    ${notes.length === 0 ? `
+      <div class="empty">
+        <div class="ico">${I.clipboard}</div>
+        <h4>لا توجد ملاحظات</h4>
+        <p>اضغطي "إضافة ملاحظة جديدة" لبدء تسجيل الملاحظات</p>
+      </div>
+    ` : `
+      <div class="stack gap-sm" id="student-notes-list">
+        ${notes.map((note, idx) => `
+          <div class="note-card">
+            <div class="note-header">
+              <div class="note-date">${fmtDate(note.date)}</div>
+              <button class="btn soft sm" data-action="delete-student-note" data-sid="${st.id}" data-idx="${idx}">
+                ${I.trash}<span>حذف</span>
+              </button>
+            </div>
+            <div class="note-text">${esc(note.text)}</div>
+            ${note.addedBy ? `<div class="note-footer">بواسطة: ${esc(note.addedBy)}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `}
+  `, { lg: true });
+}
+
+function openAddStudentNoteModal(sid) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>📝 إضافة ملاحظة — ${esc(st.name)}</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="add-student-note-form" data-sid="${st.id}">
+      <div class="field">
+        <label>تاريخ الملاحظة <span style="color:var(--critical)">*</span></label>
+        <input type="date" name="date" value="${new Date().toISOString().slice(0, 10)}" required>
+      </div>
+      
+      <div class="field">
+        <label>نص الملاحظة <span style="color:var(--critical)">*</span></label>
+        <textarea name="text" rows="6" required placeholder="اكتبي ملاحظاتك عن الطالبة هنا..."></textarea>
+      </div>
+      
+      <button type="submit" class="btn lg block">${I.check}<span>حفظ الملاحظة</span></button>
+    </form>
+  `);
+}
+
+async function deleteStudentNote(sid, idx) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  if (!confirm('هل أنتِ متأكدة من حذف هذه الملاحظة؟')) return;
+  
+  try {
+    // Remove note from array
+    const notes = st.special_ed_forms?.student_notes || [];
+    notes.splice(idx, 1);
+    
+    // Initialize special_ed_forms if needed
+    if (!st.special_ed_forms) {
+      st.special_ed_forms = {
+        medical_diagnosis_pdf: null,
+        diagnostic_test_pdf: null,
+        student_notes: notes
+      };
+    } else {
+      st.special_ed_forms.student_notes = notes;
+    }
+    
+    // Update in Supabase
+    const { error } = await window.supabaseClient
+      .from('students')
+      .update({ special_ed_forms: st.special_ed_forms })
+      .eq('id', sid);
+    
+    if (error) throw error;
+    
+    persistState();
+    toast('تم حذف الملاحظة');
+    
+    // Refresh the modal
+    closeModal();
+    openStudentNotesModal(sid);
+  } catch (error) {
+    console.error('Error deleting note:', error);
+    toast('حدث خطأ أثناء حذف الملاحظة', 'error');
+  }
+}
+
+/* =========================================================
+   SPECIAL ED IEP MODALS
+   ========================================================= */
+
+function openSpecialEdIEPModal(sid) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  const iep = st.special_ed_iep || {};
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>📋 الخطة الفردية — ${esc(st.name)}</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="save-special-ed-iep" data-sid="${st.id}">
+      <div class="field">
+        <label>المستوى الحالي للطالبة</label>
+        <textarea name="current_level" rows="3" placeholder="وصف المستوى الحالي للطالبة">${esc(iep.current_level || '')}</textarea>
+      </div>
+      
+      <div class="row" style="gap:12px">
+        <div class="field" style="flex:1">
+          <label>نقاط القوة</label>
+          <textarea name="strengths" rows="3" placeholder="نقاط القوة لدى الطالبة">${esc(iep.strengths || '')}</textarea>
+        </div>
+        <div class="field" style="flex:1">
+          <label>نقاط الاحتياج</label>
+          <textarea name="needs" rows="3" placeholder="المجالات التي تحتاج تحسين">${esc(iep.needs || '')}</textarea>
+        </div>
+      </div>
+      
+      <div class="field">
+        <label>الأهداف الفصلية (هدف واحد في كل سطر)</label>
+        <textarea name="semester_goals" rows="4" placeholder="مثال:\nتحسين مهارات التواصل اللفظي\nتطوير المهارات الاجتماعية">${(iep.semester_goals || []).map(g => g.text).join('\n')}</textarea>
+        <div class="text-xs text-muted mt-sm">اكتبي كل هدف فصلي في سطر منفصل</div>
+      </div>
+      
+      <div class="field">
+        <label>الأهداف قصيرة المدى (هدف واحد في كل سطر)</label>
+        <textarea name="short_term_goals" rows="4" placeholder="مثال:\nالتعبير عن الاحتياجات الأساسية\nالرد على الأسئلة البسيطة">${(iep.short_term_goals || []).map(g => g.text).join('\n')}</textarea>
+        <div class="text-xs text-muted mt-sm">اكتبي كل هدف قصير المدى في سطر منفصل</div>
+      </div>
+      
+      <div class="field">
+        <label>الأهداف السلوكية/التعليمية (هدف واحد في كل سطر)</label>
+        <textarea name="behavioral_goals" rows="4" placeholder="مثال:\nالالتزام بالجلوس أثناء النشاط\nالانتباه للمعلمة لمدة 5 دقائق">${(iep.behavioral_goals || []).map(g => g.text).join('\n')}</textarea>
+      </div>
+      
+      <div class="field">
+        <label>الوسائل والأدوات التعليمية</label>
+        <input name="teaching_tools" placeholder="اكتبي الوسائل مفصولة بفاصلة" value="${(iep.teaching_tools || []).join(', ')}">
+        <div class="text-xs text-muted mt-sm">مثال: بطاقات مصورة، مجسمات، آيباد</div>
+      </div>
+      
+      <div class="field">
+        <label>استراتيجيات وطرق التدريس</label>
+        <input name="teaching_strategies" placeholder="اكتبي الاستراتيجيات مفصولة بفاصلة" value="${(iep.teaching_strategies || []).join(', ')}">
+        <div class="text-xs text-muted mt-sm">مثال: التعليم المباشر، النمذجة، التعزيز الإيجابي</div>
+      </div>
+      
+      <div class="row" style="gap:12px">
+        <div class="field" style="flex:1">
+          <label>تاريخ البدء</label>
+          <input type="date" name="start_date" value="${esc(iep.start_date || '')}">
+        </div>
+        <div class="field" style="flex:1">
+          <label>تاريخ الانتهاء</label>
+          <input type="date" name="end_date" value="${esc(iep.end_date || '')}">
+        </div>
+      </div>
+      
+      <button type="submit" class="btn lg block">${I.check}<span>حفظ الخطة الفردية</span></button>
+    </form>
+  `, { lg: true });
+}
+
+function openIEPPDFUploadModal(sid) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>📄 رفع الخطة الفردية (PDF)</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="upload-iep-pdf-form" data-sid="${st.id}">
+      <div class="alert info mb-md">
+        ${I.upload}
+        <div>
+          <div class="text-sm text-bold">رفع خطة فردية جاهزة</div>
+          <div class="text-xs text-muted mt-sm">يمكنكِ رفع ملف PDF للخطة الفردية إذا كانت جاهزة من برنامج آخر</div>
+        </div>
+      </div>
+      
+      <div class="field">
+        <label>اختر ملف PDF <span style="color:var(--critical)">*</span></label>
+        <input type="file" name="pdfFile" accept=".pdf,application/pdf" required>
+        <div class="text-xs text-muted mt-sm">صيغة PDF فقط، الحد الأقصى 10 ميجابايت</div>
+      </div>
+      
+      <button type="submit" class="btn lg block">${I.upload}<span>رفع الملف</span></button>
+    </form>
+  `);
+}
+
+async function viewIEPPDF(sid) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  const pdfUrl = st.special_ed_iep?.pdf_upload;
+  
+  if (!pdfUrl) {
+    toast('لم يتم رفع ملف PDF للخطة', 'error');
+    return;
+  }
+  
+  try {
+    const { data, error } = await window.supabaseClient.storage
+      .from('student-documents')
+      .createSignedUrl(pdfUrl, 3600);
+    
+    if (error) throw error;
+    window.open(data.signedUrl, '_blank');
+  } catch (error) {
+    console.error('Error viewing IEP PDF:', error);
+    toast('حدث خطأ أثناء فتح الملف', 'error');
+  }
+}
+
+/* =========================================================
+   SPECIAL ED SESSION PLANNING MODALS
+   ========================================================= */
+
+function openSpecialEdSessionModal(sid, sessionIdx = null) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  const isEdit = sessionIdx !== null;
+  const session = isEdit ? (st.special_ed_sessions || [])[sessionIdx] : null;
+  
+  // Get short-term goals from IEP
+  const shortTermGoals = st.special_ed_iep?.short_term_goals || [];
+  
+  // Teaching tools options
+  const toolsOptions = [
+    'السبورة والأقلام الملونة',
+    'البطاقات أو الصور',
+    'الكتاب المدرسي',
+    'المجسمات',
+    'دفتر الطالبات',
+    'الألوان'
+  ];
+  
+  // Teaching methods options
+  const methodsOptions = [
+    'توجيه لفظي',
+    'توجيه بدني',
+    'إيماءات',
+    'حوار ونقاش',
+    'تمثيل',
+    'خبرة مباشرة',
+    'محاكاة ونمذجة',
+    'لعب',
+    'قصص'
+  ];
+  
+  // Reinforcement methods
+  const reinforcementOptions = [
+    'تعزيز اجتماعي',
+    'تعزيز غذائي',
+    'تعزيز مادي',
+    'تعزيز نشاطي'
+  ];
+  
+  const proceduralGoals = session?.procedural_goals || [];
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>📈 ${isEdit ? 'تعديل' : 'إضافة'} جلسة متابعة — ${esc(st.name)}</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <form data-form="save-special-ed-session" data-sid="${st.id}" ${isEdit ? `data-idx="${sessionIdx}"` : ''}>
+      <div class="section-title">١. فترة المتابعة</div>
+      <div class="row" style="gap:12px">
+        <div class="field" style="flex:1">
+          <label>التاريخ من <span style="color:var(--critical)">*</span></label>
+          <input type="date" name="date_from" value="${esc(session?.date_from || '')}" required>
+        </div>
+        <div class="field" style="flex:1">
+          <label>التاريخ إلى <span style="color:var(--critical)">*</span></label>
+          <input type="date" name="date_to" value="${esc(session?.date_to || '')}" required>
+        </div>
+      </div>
+      
+      <div class="section-title">٢. الهدف قصير المدى</div>
+      ${shortTermGoals.length > 0 ? `
+        <div class="field">
+          <label>اختر هدف قصير المدى من الخطة الفردية</label>
+          <select name="short_term_goal_id">
+            <option value="">-- اختر هدف --</option>
+            ${shortTermGoals.map((goal, idx) => `
+              <option value="${idx}" ${session?.short_term_goal_id === idx ? 'selected' : ''}>
+                ${esc(goal.text)}
+              </option>
+            `).join('')}
+          </select>
+        </div>
+      ` : `
+        <div class="alert" style="background:var(--warn-50);border-color:var(--warn)">
+          ${I.flag}
+          <div class="text-sm">لا توجد أهداف قصيرة المدى في الخطة الفردية. قم بإضافة الأهداف من تبويب "الخطة الفردية" أولاً.</div>
+        </div>
+      `}
+      
+      <div class="section-title">٣. الأهداف الإجرائية السلوكية</div>
+      <div id="procedural-goals-container">
+        ${proceduralGoals.map((goal, idx) => `
+          <div class="procedural-goal-item" data-idx="${idx}">
+            <div class="field">
+              <label>الهدف ${arNum(idx + 1)}</label>
+              <textarea name="procedural_goal_${idx}" rows="2" required>${esc(goal.text)}</textarea>
+            </div>
+            <div class="field">
+              <label>التقييم</label>
+              <select name="evaluation_${idx}">
+                <option value="achieved" ${goal.evaluation === 'achieved' ? 'selected' : ''}>تحقق</option>
+                <option value="partial" ${goal.evaluation === 'partial' ? 'selected' : ''}>تحقق جزئياً</option>
+                <option value="not_achieved" ${goal.evaluation === 'not_achieved' ? 'selected' : ''}>لم يتحقق</option>
+              </select>
+            </div>
+            <button type="button" class="btn soft sm" onclick="removeProceduralGoal(${idx})">
+              ${I.trash}<span>حذف</span>
+            </button>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn ghost block" onclick="addProceduralGoal()">
+        ${I.plus}<span>إضافة هدف إجرائي</span>
+      </button>
+      
+      <div class="section-title">٤. الوسائل المستخدمة</div>
+      <div class="field">
+        <div class="checkbox-grid">
+          ${toolsOptions.map(tool => `
+            <label class="checkbox-item">
+              <input type="checkbox" name="tools" value="${esc(tool)}" ${session?.tools?.includes(tool) ? 'checked' : ''}>
+              <span>${esc(tool)}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>أخرى</label>
+        <input name="tools_other" placeholder="وسائل أخرى" value="${esc(session?.tools_other || '')}">
+      </div>
+      
+      <div class="section-title">٥. أساليب التدريس</div>
+      <div class="field">
+        <div class="checkbox-grid">
+          ${methodsOptions.map(method => `
+            <label class="checkbox-item">
+              <input type="checkbox" name="methods" value="${esc(method)}" ${session?.methods?.includes(method) ? 'checked' : ''}>
+              <span>${esc(method)}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>أخرى</label>
+        <input name="methods_other" placeholder="أساليب أخرى" value="${esc(session?.methods_other || '')}">
+      </div>
+      
+      <div class="section-title">٦. أساليب التعزيز</div>
+      <div class="field">
+        <div class="checkbox-grid">
+          ${reinforcementOptions.map(reinforcement => `
+            <label class="checkbox-item">
+              <input type="checkbox" name="reinforcement" value="${esc(reinforcement)}" ${session?.reinforcement?.includes(reinforcement) ? 'checked' : ''}>
+              <span>${esc(reinforcement)}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+      
+      <div class="section-title">٧. ملاحظات المعلمة</div>
+      <div class="field">
+        <textarea name="teaching_notes" rows="4" placeholder="اكتبي ملاحظاتك عن الجلسة...">${esc(session?.teaching_notes || '')}</textarea>
+      </div>
+      
+      <button type="submit" class="btn lg block">${I.check}<span>${isEdit ? 'حفظ التعديلات' : 'حفظ الجلسة'}</span></button>
+    </form>
+    
+    <script>
+      let proceduralGoalCounter = ${proceduralGoals.length};
+      
+      function addProceduralGoal() {
+        const container = document.getElementById('procedural-goals-container');
+        const idx = proceduralGoalCounter++;
+        const goalHTML = \`
+          <div class="procedural-goal-item" data-idx="\${idx}">
+            <div class="field">
+              <label>الهدف \${idx + 1}</label>
+              <textarea name="procedural_goal_\${idx}" rows="2" required></textarea>
+            </div>
+            <div class="field">
+              <label>التقييم</label>
+              <select name="evaluation_\${idx}">
+                <option value="achieved">تحقق</option>
+                <option value="partial">تحقق جزئياً</option>
+                <option value="not_achieved">لم يتحقق</option>
+              </select>
+            </div>
+            <button type="button" class="btn soft sm" onclick="removeProceduralGoal(\${idx})">
+              ${I.trash}<span>حذف</span>
+            </button>
+          </div>
+        \`;
+        container.insertAdjacentHTML('beforeend', goalHTML);
+      }
+      
+      function removeProceduralGoal(idx) {
+        const item = document.querySelector(\`.procedural-goal-item[data-idx="\${idx}"]\`);
+        if (item) item.remove();
+      }
+    </script>
+  `, { lg: true });
+}
+
+function viewSpecialEdSession(sid, sessionIdx) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  const session = (st.special_ed_sessions || [])[sessionIdx];
+  if (!session) return;
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>📈 عرض جلسة المتابعة — ${esc(st.name)}</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    <div class="session-view">
+      <div class="session-view-section">
+        <h3>فترة المتابعة</h3>
+        <p>${fmtDate(session.date_from)} - ${fmtDate(session.date_to)}</p>
+      </div>
+      
+      ${session.short_term_goal ? `
+        <div class="session-view-section">
+          <h3>الهدف قصير المدى</h3>
+          <p>${esc(session.short_term_goal)}</p>
+        </div>
+      ` : ''}
+      
+      ${session.procedural_goals && session.procedural_goals.length > 0 ? `
+        <div class="session-view-section">
+          <h3>الأهداف الإجرائية السلوكية</h3>
+          <div class="goals-evaluation-list">
+            ${session.procedural_goals.map((goal, idx) => `
+              <div class="goal-evaluation-item">
+                <div class="goal-eval-number">${arNum(idx + 1)}</div>
+                <div class="goal-eval-content">
+                  <div class="goal-eval-text">${esc(goal.text)}</div>
+                  <div class="goal-eval-status ${goal.evaluation}">
+                    ${goal.evaluation === 'achieved' ? '✅ تحقق' : 
+                      goal.evaluation === 'partial' ? '🔸 تحقق جزئياً' : '❌ لم يتحقق'}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+      
+      ${session.tools && session.tools.length > 0 ? `
+        <div class="session-view-section">
+          <h3>الوسائل المستخدمة</h3>
+          <div class="tags-wrap">
+            ${session.tools.map(tool => `<span class="tag">${esc(tool)}</span>`).join('')}
+            ${session.tools_other ? `<span class="tag">${esc(session.tools_other)}</span>` : ''}
+          </div>
+        </div>
+      ` : ''}
+      
+      ${session.methods && session.methods.length > 0 ? `
+        <div class="session-view-section">
+          <h3>أساليب التدريس</h3>
+          <div class="tags-wrap">
+            ${session.methods.map(method => `<span class="tag">${esc(method)}</span>`).join('')}
+            ${session.methods_other ? `<span class="tag">${esc(session.methods_other)}</span>` : ''}
+          </div>
+        </div>
+      ` : ''}
+      
+      ${session.reinforcement && session.reinforcement.length > 0 ? `
+        <div class="session-view-section">
+          <h3>أساليب التعزيز</h3>
+          <div class="tags-wrap">
+            ${session.reinforcement.map(r => `<span class="tag">${esc(r)}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+      
+      ${session.teaching_notes ? `
+        <div class="session-view-section">
+          <h3>ملاحظات المعلمة</h3>
+          <p style="white-space: pre-wrap;">${esc(session.teaching_notes)}</p>
+        </div>
+      ` : ''}
+    </div>
+    
+    <div class="row" style="gap:8px;margin-top:16px">
+      <button class="btn block" data-action="edit-special-ed-session" data-sid="${sid}" data-idx="${sessionIdx}">
+        ${I.edit}<span>تعديل الجلسة</span>
+      </button>
+      <button class="btn ghost block" data-action="close-modal">${I.close}<span>إغلاق</span></button>
+    </div>
+  `, { lg: true });
+}
+
 function openFormModal(sid, fkey, viewOnly = false) {
   const st = studentBy(sid);
   if (!st) return;
   const data = (st.forms || {})[fkey] || {};
-  const ft = FORM_TYPES.find(f => f.key === fkey);
+  const ft = FORM_TYPES.find(f => f.key === fkey) || SPECIAL_ED_FORM_TYPES.find(f => f.key === fkey);
 
   let body = '';
   if (fkey === 'parentConsent') body = renderParentConsentForm(st, data, viewOnly);
+  else if (fkey === 'initialData') body = renderInitialDataForm(st, data, viewOnly);
   else if (fkey === 'preAssessment') body = renderPreAssessmentForm(st, data, viewOnly);
   else if (fkey === 'speechTest') body = renderSpeechTestForm(st, data, viewOnly);
   else if (fkey === 'auditoryMemoryTest') body = renderAuditoryMemoryForm(st, data, viewOnly);
@@ -6796,6 +7789,86 @@ function renderParentConsentForm(st, data, viewOnly) {
         <input name="signedBy" value="${esc(userBy(st.parentId)?.name || '')}" required>
       </div>
       <button type="submit" class="btn lg block">${I.check}<span>تأكيد التوقيع</span></button>
+    </form>
+  `;
+}
+
+function renderInitialDataForm(st, data, viewOnly) {
+  // Get shared initial data from student record
+  const initialData = st.shared_initial_data || {};
+  const isCompleted = initialData.completed || false;
+  
+  if (viewOnly && isCompleted) {
+    return `
+      <div class="form-view">
+        <div class="alert info mb-md">
+          ${I.checkCircle}
+          <div>
+            <div class="text-sm text-bold">البيانات الأولية مكتملة</div>
+            <div class="text-xs text-muted mt-sm">تم إدخال البيانات بتاريخ ${fmtDate(initialData.date || new Date().toISOString())} من قبل ${esc(initialData.enteredBy || 'المعلمة')}</div>
+          </div>
+        </div>
+        <div class="initial-data-view">
+          <div class="data-row"><span class="label">اسم الطالبة:</span><span class="value">${esc(st.name)}</span></div>
+          <div class="data-row"><span class="label">تاريخ الميلاد:</span><span class="value">${esc(initialData.birthDate || '—')}</span></div>
+          <div class="data-row"><span class="label">العمر:</span><span class="value">${arNum(st.age)} سنوات</span></div>
+          <div class="data-row"><span class="label">الصف:</span><span class="value">${esc(st.grade)}</span></div>
+          <div class="data-row"><span class="label">التشخيص الطبي:</span><span class="value">${esc(initialData.medicalDiagnosis || '—')}</span></div>
+          <div class="data-row"><span class="label">رقم ولي الأمر:</span><span class="value dir-ltr">${esc(st.parent_phone || '—')}</span></div>
+          ${initialData.notes ? `<div class="data-row"><span class="label">ملاحظات:</span><span class="value">${esc(initialData.notes)}</span></div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+  
+  return `
+    <form data-form="save-initial-data" data-sid="${st.id}">
+      <div class="alert info mb-md">
+        ${I.star}
+        <div>
+          <div class="text-sm text-bold">البيانات الأولية مشتركة</div>
+          <div class="text-xs text-muted mt-sm">عند حفظ هذه البيانات، ستظهر تلقائياً لجميع المعلمات المسؤولات عن الطالبة</div>
+        </div>
+      </div>
+      
+      <div class="field">
+        <label>اسم الطالبة <span style="color:var(--critical)">*</span></label>
+        <input name="name" value="${esc(st.name)}" required readonly disabled style="background:var(--bg-2)">
+      </div>
+      
+      <div class="row" style="gap:12px">
+        <div class="field" style="flex:1">
+          <label>تاريخ الميلاد <span style="color:var(--critical)">*</span></label>
+          <input name="birthDate" type="date" value="${esc(initialData.birthDate || '')}" required>
+        </div>
+        <div class="field" style="flex:1">
+          <label>العمر</label>
+          <input name="age" type="number" value="${st.age}" readonly disabled style="background:var(--bg-2)">
+        </div>
+      </div>
+      
+      <div class="field">
+        <label>الصف <span style="color:var(--critical)">*</span></label>
+        <input name="grade" value="${esc(st.grade)}" required readonly disabled style="background:var(--bg-2)">
+      </div>
+      
+      <div class="field">
+        <label>التشخيص الطبي</label>
+        <input name="medicalDiagnosis" value="${esc(initialData.medicalDiagnosis || '')}" placeholder="مثال: اضطراب طيف التوحد، تأخر نطق">
+        <div class="text-xs text-muted mt-sm">يمكن ترك هذا الحقل فارغاً إذا لم يتوفر تشخيص بعد</div>
+      </div>
+      
+      <div class="field">
+        <label>رقم ولي الأمر <span style="color:var(--critical)">*</span></label>
+        <input name="parentPhone" type="tel" value="${esc(st.parent_phone || '')}" required placeholder="05xxxxxxxx" dir="ltr">
+      </div>
+      
+      <div class="field">
+        <label>ملاحظات إضافية</label>
+        <textarea name="notes" rows="3" placeholder="أي معلومات إضافية مهمة عن الطالبة">${esc(initialData.notes || '')}</textarea>
+      </div>
+      
+      <button type="submit" class="btn lg block">${I.check}<span>حفظ البيانات الأولية</span></button>
     </form>
   `;
 }
@@ -9304,15 +10377,11 @@ document.addEventListener('click', (e) => {
         
         <div class="field">
           <label>المسمى الوظيفي <span style="color:var(--critical)">*</span></label>
-          <input name="title" required placeholder="معلمة النطق">
-        </div>
-        
-        <div class="field">
-          <label>نوع المعلمة <span style="color:var(--critical)">*</span></label>
           <select name="teacher_type" required>
-            <option value="">-- اختاري نوع المعلمة --</option>
-            <option value="speech_therapy">معلمة نطق</option>
-            <option value="special_education">معلمة تربية خاصة</option>
+            <option value="">-- اختاري المسمى الوظيفي --</option>
+            <option value="speech">معلم نطق</option>
+            <option value="special_ed">معلم تربية خاصة</option>
+            <option value="vice_principal">الوكيل</option>
           </select>
           <div class="text-xs text-muted mt-sm">يحدد الصفحات والمهام المتاحة للمعلمة</div>
         </div>
@@ -9632,10 +10701,19 @@ document.addEventListener('submit', async (e) => {
       submitBtn.innerHTML = `<span>جاري الإضافة...</span>`;
 
       const formData = new FormData(form);
+      const teacherType = formData.get('teacher_type');
+      
+      // Map teacher_type to Arabic title
+      const titleMap = {
+        'speech': 'معلم نطق',
+        'special_ed': 'معلم تربية خاصة',
+        'vice_principal': 'الوكيل'
+      };
+      
       const teacherData = {
         name: formData.get('name'),
-        title: formData.get('title'),
-        teacher_type: formData.get('teacher_type'),
+        title: titleMap[teacherType] || 'معلمة',
+        teacher_type: teacherType,
         email: formData.get('email'),
         phone: formData.get('phone'),
         permissions: {
@@ -9663,6 +10741,435 @@ document.addEventListener('submit', async (e) => {
     } catch (error) {
       console.error('Error adding teacher:', error);
       toast(error.message || 'حدث خطأ أثناء إضافة المعلمة', 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+  }
+
+  // Handle Save Initial Data Form (Shared across all teachers)
+  if (e.target.matches('[data-form="save-initial-data"]')) {
+    e.preventDefault();
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    try {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>جاري الحفظ...</span>`;
+
+      const formData = new FormData(form);
+      const sid = form.getAttribute('data-sid');
+      const st = studentBy(sid);
+      
+      if (!st) throw new Error('Student not found');
+      
+      const initialData = {
+        completed: true,
+        date: new Date().toISOString().slice(0, 10),
+        enteredBy: STATE.user.name,
+        birthDate: formData.get('birthDate'),
+        medicalDiagnosis: formData.get('medicalDiagnosis'),
+        parentPhone: formData.get('parentPhone'),
+        notes: formData.get('notes'),
+      };
+      
+      // Update in Supabase
+      const { error } = await window.supabaseClient
+        .from('students')
+        .update({ 
+          shared_initial_data: initialData,
+          parent_phone: formData.get('parentPhone') // Also update parent_phone field
+        })
+        .eq('id', sid);
+      
+      if (error) throw error;
+      
+      // Update local state
+      st.shared_initial_data = initialData;
+      st.parent_phone = formData.get('parentPhone');
+      persistState();
+      
+      closeModal();
+      toast('✅ تم حفظ البيانات الأولية (متاحة لجميع المعلمات)');
+    } catch (error) {
+      console.error('Error saving initial data:', error);
+      toast(error.message || 'حدث خطأ أثناء حفظ البيانات', 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+  }
+
+  // Handle PDF Upload Form
+  if (e.target.matches('[data-form="upload-pdf-form"]')) {
+    e.preventDefault();
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    try {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>جاري الرفع...</span>`;
+
+      const formData = new FormData(form);
+      const sid = form.getAttribute('data-sid');
+      const fkey = form.getAttribute('data-fkey');
+      const st = studentBy(sid);
+      const file = formData.get('pdfFile');
+      
+      if (!st) throw new Error('Student not found');
+      if (!file || file.size === 0) throw new Error('الرجاء اختيار ملف');
+      if (file.size > 10 * 1024 * 1024) throw new Error('حجم الملف يتجاوز 10 ميجابايت');
+      if (file.type !== 'application/pdf') throw new Error('يجب أن يكون الملف بصيغة PDF');
+      
+      // Upload to Supabase Storage
+      const fileName = `${sid}/${fkey}/${Date.now()}_${file.name}`;
+      const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
+        .from('student-documents')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Initialize special_ed_forms if needed
+      if (!st.special_ed_forms) {
+        st.special_ed_forms = {
+          medical_diagnosis_pdf: null,
+          diagnostic_test_pdf: null,
+          student_notes: []
+        };
+      }
+      
+      // Update form data with file path
+      st.special_ed_forms[fkey] = fileName;
+      
+      // Save to Supabase
+      const { error } = await window.supabaseClient
+        .from('students')
+        .update({ special_ed_forms: st.special_ed_forms })
+        .eq('id', sid);
+      
+      if (error) throw error;
+      
+      persistState();
+      closeModal();
+      toast('✅ تم رفع الملف بنجاح');
+      
+      // Reload the page to show updated status
+      handleRoute();
+    } catch (error) {
+      console.error('Error uploading PDF:', error);
+      toast(error.message || 'حدث خطأ أثناء رفع الملف', 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+  }
+
+  // Handle Add Student Note Form
+  if (e.target.matches('[data-form="add-student-note-form"]')) {
+    e.preventDefault();
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    try {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>جاري الحفظ...</span>`;
+
+      const formData = new FormData(form);
+      const sid = form.getAttribute('data-sid');
+      const st = studentBy(sid);
+      
+      if (!st) throw new Error('Student not found');
+      
+      const newNote = {
+        date: formData.get('date'),
+        text: formData.get('text'),
+        addedBy: STATE.user.name,
+        addedAt: new Date().toISOString()
+      };
+      
+      // Initialize special_ed_forms if needed
+      if (!st.special_ed_forms) {
+        st.special_ed_forms = {
+          medical_diagnosis_pdf: null,
+          diagnostic_test_pdf: null,
+          student_notes: []
+        };
+      }
+      
+      // Add note to array
+      if (!st.special_ed_forms.student_notes) {
+        st.special_ed_forms.student_notes = [];
+      }
+      st.special_ed_forms.student_notes.unshift(newNote); // Add to beginning
+      
+      // Save to Supabase
+      const { error } = await window.supabaseClient
+        .from('students')
+        .update({ special_ed_forms: st.special_ed_forms })
+        .eq('id', sid);
+      
+      if (error) throw error;
+      
+      persistState();
+      closeModal();
+      toast('✅ تم إضافة الملاحظة');
+      
+      // Reopen notes modal to show new note
+      openStudentNotesModal(sid);
+    } catch (error) {
+      console.error('Error adding note:', error);
+      toast(error.message || 'حدث خطأ أثناء إضافة الملاحظة', 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+  }
+
+  // Handle Save Special Ed IEP Form
+  if (e.target.matches('[data-form="save-special-ed-iep"]')) {
+    e.preventDefault();
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    try {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>جاري الحفظ...</span>`;
+
+      const formData = new FormData(form);
+      const sid = form.getAttribute('data-sid');
+      const st = studentBy(sid);
+      
+      if (!st) throw new Error('Student not found');
+      
+      // Parse goals from textarea (one per line)
+      const parseSemesterGoals = (text) => {
+        return text.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+          .map((line, idx) => ({ id: idx, text: line, short_term_ids: [] }));
+      };
+      
+      const parseGoals = (text) => {
+        return text.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+          .map((line, idx) => ({ id: idx, text: line }));
+      };
+      
+      const parseList = (text) => {
+        return text.split(',')
+          .map(item => item.trim())
+          .filter(item => item.length > 0);
+      };
+      
+      const iepData = {
+        current_level: formData.get('current_level'),
+        strengths: formData.get('strengths'),
+        needs: formData.get('needs'),
+        semester_goals: parseSemesterGoals(formData.get('semester_goals') || ''),
+        short_term_goals: parseGoals(formData.get('short_term_goals') || ''),
+        behavioral_goals: parseGoals(formData.get('behavioral_goals') || ''),
+        teaching_tools: parseList(formData.get('teaching_tools') || ''),
+        teaching_strategies: parseList(formData.get('teaching_strategies') || ''),
+        start_date: formData.get('start_date'),
+        end_date: formData.get('end_date'),
+        pdf_upload: st.special_ed_iep?.pdf_upload || null,
+      };
+      
+      // Save to Supabase
+      const { error } = await window.supabaseClient
+        .from('students')
+        .update({ special_ed_iep: iepData })
+        .eq('id', sid);
+      
+      if (error) throw error;
+      
+      // Update local state
+      st.special_ed_iep = iepData;
+      persistState();
+      
+      closeModal();
+      toast('✅ تم حفظ الخطة الفردية');
+      
+      // Refresh the page
+      handleRoute();
+    } catch (error) {
+      console.error('Error saving IEP:', error);
+      toast(error.message || 'حدث خطأ أثناء حفظ الخطة', 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+  }
+
+  // Handle Upload IEP PDF Form
+  if (e.target.matches('[data-form="upload-iep-pdf-form"]')) {
+    e.preventDefault();
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    try {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>جاري الرفع...</span>`;
+
+      const formData = new FormData(form);
+      const sid = form.getAttribute('data-sid');
+      const st = studentBy(sid);
+      const file = formData.get('pdfFile');
+      
+      if (!st) throw new Error('Student not found');
+      if (!file || file.size === 0) throw new Error('الرجاء اختيار ملف');
+      if (file.size > 10 * 1024 * 1024) throw new Error('حجم الملف يتجاوز 10 ميجابايت');
+      if (file.type !== 'application/pdf') throw new Error('يجب أن يكون الملف بصيغة PDF');
+      
+      // Upload to Supabase Storage
+      const fileName = `${sid}/iep/${Date.now()}_${file.name}`;
+      const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
+        .from('student-documents')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Initialize IEP if needed
+      if (!st.special_ed_iep) {
+        st.special_ed_iep = {
+          current_level: '',
+          strengths: '',
+          needs: '',
+          semester_goals: [],
+          short_term_goals: [],
+          behavioral_goals: [],
+          teaching_tools: [],
+          teaching_strategies: [],
+          start_date: null,
+          end_date: null,
+          pdf_upload: fileName
+        };
+      } else {
+        st.special_ed_iep.pdf_upload = fileName;
+      }
+      
+      // Save to Supabase
+      const { error } = await window.supabaseClient
+        .from('students')
+        .update({ special_ed_iep: st.special_ed_iep })
+        .eq('id', sid);
+      
+      if (error) throw error;
+      
+      persistState();
+      closeModal();
+      toast('✅ تم رفع ملف الخطة الفردية');
+      
+      // Reload the page
+      handleRoute();
+    } catch (error) {
+      console.error('Error uploading IEP PDF:', error);
+      toast(error.message || 'حدث خطأ أثناء رفع الملف', 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+  }
+
+  // Handle Save Special Ed Session Form
+  if (e.target.matches('[data-form="save-special-ed-session"]')) {
+    e.preventDefault();
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    try {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>جاري الحفظ...</span>`;
+
+      const formData = new FormData(form);
+      const sid = form.getAttribute('data-sid');
+      const sessionIdx = form.getAttribute('data-idx');
+      const isEdit = sessionIdx !== null && sessionIdx !== '';
+      const st = studentBy(sid);
+      
+      if (!st) throw new Error('Student not found');
+      
+      // Get short term goal text if selected
+      const shortTermGoalId = formData.get('short_term_goal_id');
+      let shortTermGoalText = '';
+      if (shortTermGoalId) {
+        const goals = st.special_ed_iep?.short_term_goals || [];
+        const goal = goals[parseInt(shortTermGoalId)];
+        if (goal) shortTermGoalText = goal.text;
+      }
+      
+      // Collect procedural goals
+      const proceduralGoals = [];
+      let goalIdx = 0;
+      while (formData.has(`procedural_goal_${goalIdx}`)) {
+        const goalText = formData.get(`procedural_goal_${goalIdx}`);
+        const evaluation = formData.get(`evaluation_${goalIdx}`);
+        if (goalText && goalText.trim()) {
+          proceduralGoals.push({
+            text: goalText.trim(),
+            evaluation: evaluation || 'not_achieved'
+          });
+        }
+        goalIdx++;
+      }
+      
+      // Collect multi-select checkboxes
+      const tools = formData.getAll('tools');
+      const methods = formData.getAll('methods');
+      const reinforcement = formData.getAll('reinforcement');
+      
+      const sessionData = {
+        date_from: formData.get('date_from'),
+        date_to: formData.get('date_to'),
+        short_term_goal_id: shortTermGoalId ? parseInt(shortTermGoalId) : null,
+        short_term_goal: shortTermGoalText,
+        procedural_goals: proceduralGoals,
+        tools: tools,
+        tools_other: formData.get('tools_other'),
+        methods: methods,
+        methods_other: formData.get('methods_other'),
+        reinforcement: reinforcement,
+        teaching_notes: formData.get('teaching_notes'),
+        created_at: isEdit ? st.special_ed_sessions[parseInt(sessionIdx)].created_at : new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      // Initialize sessions array if needed
+      if (!st.special_ed_sessions) {
+        st.special_ed_sessions = [];
+      }
+      
+      // Add or update session
+      if (isEdit) {
+        st.special_ed_sessions[parseInt(sessionIdx)] = sessionData;
+      } else {
+        st.special_ed_sessions.push(sessionData);
+      }
+      
+      // Save to Supabase
+      const { error } = await window.supabaseClient
+        .from('students')
+        .update({ special_ed_sessions: st.special_ed_sessions })
+        .eq('id', sid);
+      
+      if (error) throw error;
+      
+      persistState();
+      closeModal();
+      toast(isEdit ? '✅ تم تحديث الجلسة' : '✅ تم حفظ الجلسة');
+      
+      // Navigate to follow tab
+      navigate(`/teacher/student/${sid}?tab=follow`);
+    } catch (error) {
+      console.error('Error saving session:', error);
+      toast(error.message || 'حدث خطأ أثناء حفظ الجلسة', 'error');
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalText;
     }
