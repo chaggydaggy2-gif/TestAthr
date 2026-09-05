@@ -1429,7 +1429,7 @@ function viewStudentProfile(id, role) {
       <div class="tab ${activeTab==='plan'?'active':''}"     data-tab="plan">✨ الخطة الفردية</div>
       <div class="tab ${activeTab==='follow'?'active':''}"   data-tab="follow">📈 متابعة الطالبة</div>
       <div class="tab ${activeTab==='attendance'?'active':''}" data-tab="attendance">📅 الحضور والغياب</div>
-      ${STATE.user?.teacher_type !== 'special_ed' ? `
+      ${(STATE.user?.teacher_type !== 'special_ed' && STATE.user?.teacher_type !== 'special_education') ? `
         <div class="tab ${activeTab==='memory'?'active':''}"   data-tab="memory">🧠 اختبار الذاكرة السمعية</div>
         <div class="tab ${activeTab==='report'?'active':''}"   data-tab="report">📄 التقرير المبدئي</div>
         <div class="tab ${activeTab==='assessment'?'active':''}" data-tab="assessment">📊 التقييم</div>
@@ -1444,7 +1444,7 @@ function viewStudentProfile(id, role) {
     <div data-tab-content="plan"       ${activeTab!=='plan'?'class="hide"':''}>${renderPlanTab(st, plan)}</div>
     <div data-tab-content="follow"     ${activeTab!=='follow'?'class="hide"':''}>${renderFollowTab(st, plan)}</div>
     <div data-tab-content="attendance" ${activeTab!=='attendance'?'class="hide"':''}>${renderAttendanceTab(st)}</div>
-    ${STATE.user?.teacher_type !== 'special_ed' ? `
+    ${(STATE.user?.teacher_type !== 'special_ed' && STATE.user?.teacher_type !== 'special_education') ? `
       <div data-tab-content="memory"     ${activeTab!=='memory'?'class="hide"':''}>${renderMemoryTestTab(st)}</div>
       <div data-tab-content="report"     ${activeTab!=='report'?'class="hide"':''}>${renderInitialReportTab(st)}</div>
       <div data-tab-content="assessment" ${activeTab!=='assessment'?'class="hide"':''}>${renderAssessmentTab(st)}</div>
@@ -1675,7 +1675,7 @@ function renderFormsTab(st) {
   const user = STATE.user;
   
   // Determine which form types to show based on teacher type
-  const isSpecialEd = user.teacher_type === 'special_ed';
+  const isSpecialEd = (user.teacher_type === 'special_ed' || user.teacher_type === 'special_education');
   const formTypes = isSpecialEd ? SPECIAL_ED_FORM_TYPES : FORM_TYPES;
   
   console.log('📋 Rendering forms tab for:', st.name);
@@ -1941,7 +1941,7 @@ function renderPlanTab(st, plan) {
   const user = STATE.user;
   
   // Check if this is a Special Ed teacher
-  if (user.teacher_type === 'special_ed') {
+  if (user.teacher_type === 'special_ed' || user.teacher_type === 'special_education') {
     return renderSpecialEdIEP(st);
   }
   
@@ -2121,7 +2121,7 @@ function renderFollowTab(st, plan) {
   const user = STATE.user;
   
   // Check if this is a Special Ed teacher
-  if (user.teacher_type === 'special_ed') {
+  if (user.teacher_type === 'special_ed' || user.teacher_type === 'special_education') {
     return renderSpecialEdFollowUp(st);
   }
   
