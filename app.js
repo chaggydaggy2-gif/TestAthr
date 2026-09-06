@@ -1363,9 +1363,9 @@ const FORM_TYPES = [
 const SPECIAL_ED_FORM_TYPES = [
   { key: 'parentConsent',      name: 'موافقة ولي الأمر',     sub: 'الموافقة الرسمية على بدء الجلسات', icon: '✍️' },
   { key: 'initialData',        name: 'البيانات الأولية',     sub: 'بيانات الطالبة الأساسية (مشتركة بين المعلمات)', icon: '📝', shared: true },
+  { key: 'preAssessment',      name: 'التقييم القبلي',        sub: 'تقييم المستوى قبل بدء الخطة',       icon: '📋' },
   { key: 'medicalDiagnosis',   name: 'التشخيص الطبي والنفسي', sub: 'رفع ملف PDF للتشخيص الطبي',         icon: '🏥', isPDF: true },
   { key: 'studentNotes',       name: 'ملاحظة الطالبة',        sub: 'ملاحظات دورية عن الطالبة',           icon: '📝', isNotes: true },
-  { key: 'diagnosticTest',     name: 'الاختبار التشخيصي',     sub: 'رفع ملف PDF للاختبار التشخيصي',      icon: '📊', isPDF: true },
 ];
 
 function viewStudentProfile(id, role) {
