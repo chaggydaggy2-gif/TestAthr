@@ -5828,43 +5828,45 @@ document.addEventListener('submit', (e) => {
     
     // ✅ FIX: Save to Supabase immediately so changes persist across sessions
     if (window.supabaseClient) {
-      try {
-        const { error } = await window.supabaseClient
-          .from('students')
-          .update({
-            name: st.name,
-            grade: st.grade,
-            age: st.age,
-            parent_phone: st.parentPhone,
-            initials: st.initials
-          })
-          .eq('id', sid);
-        
-        if (error) {
-          console.error('❌ Error saving student to Supabase:', error);
-          toast('حدث خطأ في حفظ البيانات، لكن تم الحفظ محلياً', 'warn');
-        } else {
-          console.log('✅ Student saved to Supabase:', st.name);
-        }
-        
-        // Also update parent name if changed
-        if (parent && newPName && st.parent_id) {
-          const { error: parentError } = await window.supabaseClient
-            .from('users')
+      (async () => {
+        try {
+          const { error } = await window.supabaseClient
+            .from('students')
             .update({
-              name: parent.name,
-              relation: parent.relation,
-              initials: parent.initials
+              name: st.name,
+              grade: st.grade,
+              age: st.age,
+              parent_phone: st.parentPhone,
+              initials: st.initials
             })
-            .eq('id', st.parent_id);
+            .eq('id', sid);
           
-          if (parentError) {
-            console.error('❌ Error saving parent to Supabase:', parentError);
+          if (error) {
+            console.error('❌ Error saving student to Supabase:', error);
+            toast('حدث خطأ في حفظ البيانات، لكن تم الحفظ محلياً', 'warn');
+          } else {
+            console.log('✅ Student saved to Supabase:', st.name);
           }
+          
+          // Also update parent name if changed
+          if (parent && newPName && st.parent_id) {
+            const { error: parentError } = await window.supabaseClient
+              .from('users')
+              .update({
+                name: parent.name,
+                relation: parent.relation,
+                initials: parent.initials
+              })
+              .eq('id', st.parent_id);
+            
+            if (parentError) {
+              console.error('❌ Error saving parent to Supabase:', parentError);
+            }
+          }
+        } catch (err) {
+          console.error('❌ Supabase error:', err);
         }
-      } catch (err) {
-        console.error('❌ Supabase error:', err);
-      }
+      })();
     }
     
     closeModal();
