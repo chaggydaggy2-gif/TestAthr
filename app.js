@@ -1706,6 +1706,23 @@ function renderFormsTab(st) {
           completed = data.signed || data.completed;
         }
         
+        // Check if this is Special Ed teacher
+        const isSpecialEd = (user.teacher_type === 'special_ed' || user.teacher_type === 'special_education');
+        
+        // For Special Ed, show different status indicators
+        let statusIcon = '';
+        if (isSpecialEd) {
+          if (completed) {
+            statusIcon = '✅'; // Completed
+          } else if (ft.isNotes && data.notes?.length > 0) {
+            statusIcon = `<span class="badge">${arNum(data.notes.length)}</span>`; // Number of notes
+          } else if (ft.isPDF && data.pdfUrl) {
+            statusIcon = '✅'; // PDF uploaded
+          } else {
+            statusIcon = '❌'; // Not completed
+          }
+        }
+        
         console.log(`📋 Form ${ft.key}:`, {data, completed});
         
         return `
@@ -1713,9 +1730,11 @@ function renderFormsTab(st) {
             <div class="form-card-head">
               <div class="form-icon">${ft.icon}</div>
               ${ft.shared ? `<span class="form-status shared" title="مشتركة بين المعلمات">مشتركة</span>` : ''}
-              ${completed && !ft.shared
-                ? `<span class="form-status done">مكتمل</span>`
-                : !ft.shared ? `<span class="form-status pending">بانتظار</span>` : ''}
+              ${isSpecialEd
+                ? `<span class="form-status-icon">${statusIcon}</span>`
+                : completed && !ft.shared
+                  ? `<span class="form-status done">مكتمل</span>`
+                  : !ft.shared ? `<span class="form-status pending">بانتظار</span>` : ''}
             </div>
             <h3 class="form-card-title">${esc(ft.name)}</h3>
             ${completed && data.score !== undefined
@@ -5806,6 +5825,48 @@ document.addEventListener('submit', (e) => {
     }
 
     persistState();
+    
+    // ✅ FIX: Save to Supabase immediately so changes persist across sessions
+    if (window.supabaseClient) {
+      try {
+        const { error } = await window.supabaseClient
+          .from('students')
+          .update({
+            name: st.name,
+            grade: st.grade,
+            age: st.age,
+            parent_phone: st.parentPhone,
+            initials: st.initials
+          })
+          .eq('id', sid);
+        
+        if (error) {
+          console.error('❌ Error saving student to Supabase:', error);
+          toast('حدث خطأ في حفظ البيانات، لكن تم الحفظ محلياً', 'warn');
+        } else {
+          console.log('✅ Student saved to Supabase:', st.name);
+        }
+        
+        // Also update parent name if changed
+        if (parent && newPName && st.parent_id) {
+          const { error: parentError } = await window.supabaseClient
+            .from('users')
+            .update({
+              name: parent.name,
+              relation: parent.relation,
+              initials: parent.initials
+            })
+            .eq('id', st.parent_id);
+          
+          if (parentError) {
+            console.error('❌ Error saving parent to Supabase:', parentError);
+          }
+        }
+      } catch (err) {
+        console.error('❌ Supabase error:', err);
+      }
+    }
+    
     closeModal();
     toast('تم حفظ التعديلات');
     handleRoute();

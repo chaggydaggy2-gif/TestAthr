@@ -1775,6 +1775,23 @@ body.modal-open { overflow: hidden; }
 }
 .form-status.done { background: var(--positive-50); color: var(--positive); }
 .form-status.pending { background: var(--canvas-2); color: var(--ink-3); }
+
+/* Special Ed teacher status icons */
+.form-status-icon {
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.form-status-icon .badge {
+  background: var(--primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
 .form-card-title {
   font-size: 16px; font-weight: 700;
   letter-spacing: -0.01em;
