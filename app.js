@@ -1363,7 +1363,7 @@ const FORM_TYPES = [
 const SPECIAL_ED_FORM_TYPES = [
   { key: 'parentConsent',      name: 'موافقة ولي الأمر',     sub: 'الموافقة الرسمية على بدء الجلسات', icon: '✍️' },
   { key: 'initialData',        name: 'البيانات الأولية',     sub: 'بيانات الطالبة الأساسية (مشتركة بين المعلمات)', icon: '📝', shared: true },
-  { key: 'preAssessment',      name: 'التقييم القبلي',        sub: 'تقييم المستوى قبل بدء الخطة',       icon: '📋' },
+  { key: 'preAssessment',      name: 'التقييم القبلي',        sub: 'تقييم المستوى قبل بدء الخطة',       icon: '📋', allowPDF: true },
   { key: 'medicalDiagnosis',   name: 'التشخيص الطبي والنفسي', sub: 'رفع ملف PDF للتشخيص الطبي',         icon: '🏥', isPDF: true },
   { key: 'studentNotes',       name: 'ملاحظة الطالبة',        sub: 'رفع ملف pdf — ملاحظات دورية عن الطالبة', icon: '📝', isPDF: true },
 ];
@@ -1779,6 +1779,14 @@ function renderFormsTab(st) {
                     data-sid="${st.id}" data-fkey="${ft.key}">
                     ${I.edit}
                     <span>تعديل</span>
+                  </button>
+                ` : ''}
+                ${ft.allowPDF && isSpecialEd ? `
+                  <button class="btn ghost form-card-btn"
+                    data-action="upload-pdf"
+                    data-sid="${st.id}" data-fkey="${ft.key}">
+                    ${I.upload}
+                    <span>رفع PDF</span>
                   </button>
                 ` : ''}
               `}
