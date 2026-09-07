@@ -1364,7 +1364,6 @@ const SPECIAL_ED_FORM_TYPES = [
   { key: 'parentConsent',      name: 'موافقة ولي الأمر',     sub: 'الموافقة الرسمية على بدء الجلسات', icon: '✍️' },
   { key: 'initialData',        name: 'البيانات الأولية',     sub: 'بيانات الطالبة الأساسية (مشتركة بين المعلمات)', icon: '📝', shared: true },
   { key: 'preAssessment',      name: 'التقييم القبلي',        sub: 'تقييم المستوى قبل بدء الخطة',       icon: '📋', allowPDF: true },
-  { key: 'medicalDiagnosis',   name: 'التشخيص الطبي والنفسي', sub: 'رفع ملف PDF للتشخيص الطبي',         icon: '🏥', isPDF: true },
   { key: 'studentNotes',       name: 'ملاحظة الطالبة',        sub: 'رفع ملف pdf — ملاحظات دورية عن الطالبة', icon: '📝', isPDF: true },
 ];
 
@@ -1709,20 +1708,6 @@ function renderFormsTab(st) {
         // Check if this is Special Ed teacher
         const isSpecialEd = (user.teacher_type === 'special_ed' || user.teacher_type === 'special_education');
         
-        // For Special Ed, show different status indicators
-        let statusIcon = '';
-        if (isSpecialEd) {
-          if (completed) {
-            statusIcon = '✅'; // Completed
-          } else if (ft.isNotes && data.notes?.length > 0) {
-            statusIcon = `<span class="badge">${arNum(data.notes.length)}</span>`; // Number of notes
-          } else if (ft.isPDF && data.pdfUrl) {
-            statusIcon = '✅'; // PDF uploaded
-          } else {
-            statusIcon = '❌'; // Not completed
-          }
-        }
-        
         console.log(`📋 Form ${ft.key}:`, {data, completed});
         
         return `
@@ -1730,11 +1715,9 @@ function renderFormsTab(st) {
             <div class="form-card-head">
               <div class="form-icon">${ft.icon}</div>
               ${ft.shared ? `<span class="form-status shared" title="مشتركة بين المعلمات">مشتركة</span>` : ''}
-              ${isSpecialEd
-                ? `<span class="form-status-icon">${statusIcon}</span>`
-                : completed && !ft.shared
-                  ? `<span class="form-status done">مكتمل</span>`
-                  : !ft.shared ? `<span class="form-status pending">بانتظار</span>` : ''}
+              ${!isSpecialEd && completed && !ft.shared
+                ? `<span class="form-status done">مكتمل</span>`
+                : !isSpecialEd && !ft.shared ? `<span class="form-status pending">بانتظار</span>` : ''}
             </div>
             <h3 class="form-card-title">${esc(ft.name)}</h3>
             ${completed && data.score !== undefined
