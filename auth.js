@@ -182,8 +182,8 @@ const Auth = {
     if (authError) throw authError;
     if (!authData.user) throw new Error('Failed to create auth user');
 
-    // Create user profile
-    const { data: profile, error: profileError} = await window.supabaseClient
+    // Create user profile using ADMIN client (bypass RLS)
+    const { data: profile, error: profileError} = await window.supabaseAdmin
       .from('users')
       .insert({
         auth_id: authData.user.id,
@@ -205,7 +205,12 @@ const Auth = {
       .select()
       .single();
 
-    if (profileError) throw profileError;
+    if (profileError) {
+      // If profile creation failed, delete the auth user to avoid orphaned accounts
+      await window.supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      throw profileError;
+    }
+    
     return profile;
   },
 
