@@ -7006,7 +7006,7 @@ function openAddStudentModal() {
       </div>
       <div class="field">
         <label>رقم ولي الأمر</label>
-        <input name="parentPhone" type="tel" required placeholder="05xxxxxxxx">
+        <input name="parentPhone" type="tel" placeholder="05xxxxxxxx (اختياري)">
       </div>
       <button type="submit" class="btn lg block">${I.check}<span>إضافة الطالبة</span></button>
     </form>
@@ -7059,7 +7059,7 @@ function openEditStudentModal(student) {
       </div>
       <div class="field">
         <label>رقم ولي الأمر</label>
-        <input name="parentPhone" type="tel" required placeholder="05xxxxxxxx" value="${esc(student.parent_phone || student.parentPhone || '')}">
+        <input name="parentPhone" type="tel" placeholder="05xxxxxxxx (اختياري)" value="${esc(student.parent_phone || student.parentPhone || '')}">
       </div>
       <button type="submit" class="btn lg block">${I.check}<span>حفظ التعديلات</span></button>
     </form>
@@ -8194,8 +8194,8 @@ function renderInitialDataForm(st, data, viewOnly) {
       </div>
       
       <div class="field">
-        <label>رقم ولي الأمر <span style="color:var(--critical)">*</span></label>
-        <input name="parentPhone" type="tel" value="${esc(st.parent_phone || '')}" required placeholder="05xxxxxxxx" dir="ltr">
+        <label>رقم ولي الأمر</label>
+        <input name="parentPhone" type="tel" value="${esc(st.parent_phone || '')}" placeholder="05xxxxxxxx (اختياري)" dir="ltr">
       </div>
       
       <div class="field">
