@@ -175,7 +175,7 @@ const Auth = {
       user_metadata: {
         role: 'teacher',
         name: teacherData.name,
-        teacher_type: teacherData.teacher_type || 'speech',
+        teacher_type: teacherData.teacher_type || 'speech_therapy',
       }
     });
 
@@ -189,7 +189,7 @@ const Auth = {
         auth_id: authData.user.id,
         school_id: this.currentUser.school_id,
         role: 'teacher',
-        teacher_type: teacherData.teacher_type || 'speech', // 'speech', 'special_ed', or 'vice_principal'
+        teacher_type: teacherData.teacher_type || 'speech_therapy', // 'speech_therapy', 'special_education', or 'vice_principal'
         name: teacherData.name,
         email: teacherData.email,
         phone: teacherData.phone,

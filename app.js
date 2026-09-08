@@ -10882,8 +10882,8 @@ document.addEventListener('click', (e) => {
           <label>المسمى الوظيفي <span style="color:var(--critical)">*</span></label>
           <select name="teacher_type" required>
             <option value="">-- اختاري المسمى الوظيفي --</option>
-            <option value="speech">معلم نطق</option>
-            <option value="special_ed">معلم تربية خاصة</option>
+            <option value="speech_therapy">معلم نطق</option>
+            <option value="special_education">معلم تربية خاصة</option>
             <option value="vice_principal">الوكيل</option>
           </select>
           <div class="text-xs text-muted mt-sm">يحدد الصفحات والمهام المتاحة للمعلمة</div>
@@ -11208,8 +11208,8 @@ document.addEventListener('submit', async (e) => {
       
       // Map teacher_type to Arabic title
       const titleMap = {
-        'speech': 'معلم نطق',
-        'special_ed': 'معلم تربية خاصة',
+        'speech_therapy': 'معلم نطق',
+        'special_education': 'معلم تربية خاصة',
         'vice_principal': 'الوكيل'
       };
       
