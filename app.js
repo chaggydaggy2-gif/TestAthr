@@ -104,6 +104,9 @@ function loadStateFromStorage() {
   } catch { return null; }
 }
 function persistState() {
+  // ⚠️ CRITICAL: Do NOT save users/students to localStorage
+  // Supabase is the source of truth for users, students, and teachers
+  // Only save session-specific data that's not in Supabase
   const persistable = {
     userId: STATE.user?.id,
     activities: STATE.data.activities,
@@ -112,15 +115,6 @@ function persistState() {
     rewards: STATE.data.rewards,
     sessionLogs: STATE.data.sessionLogs,
     messages: STATE.data.messages,
-    addedLibrary: STATE.data.library.filter(l => l.id.startsWith('lb-new-')),
-    addedStudents: STATE.data.students.filter(s => s.id.startsWith('s-new-')),
-    addedParents: STATE.data.users.filter(u => u.id.startsWith('p-new-')),
-    addedPlans: STATE.data.plans.filter(p => p.id && p.id.startsWith('pl-new-')),
-    studentsMutable: STATE.data.students.map(s => ({ id: s.id, name: s.name, grade: s.grade, age: s.age, initials: s.initials, parentPhone: s.parentPhone, points: s.points, badges: s.badges, forms: s.forms, schedule: s.schedule, archived: !!s.archived, archivedAt: s.archivedAt || null })),
-    usersMutable: STATE.data.users.filter(u => u.role === 'parent').map(u => ({ id: u.id, name: u.name, relation: u.relation, initials: u.initials })),
-    skills: STATE.data.skills,
-    sessionTools: STATE.data.sessionTools,
-    feedbackTemplates: STATE.data.feedbackTemplates,
     config: STATE.config,
     // NEW FEATURES DATA
     studentFollowups: STATE.data.studentFollowups,
@@ -168,6 +162,7 @@ function initData() {
   }));
 
   // Load any saved data from localStorage (for offline support)
+  // ⚠️ USERS, STUDENTS, TEACHERS are loaded from Supabase ONLY - never from localStorage
   const saved = loadStateFromStorage();
   if (saved) {
     if (saved.activities) STATE.data.activities = saved.activities;
@@ -176,9 +171,8 @@ function initData() {
     if (saved.rewards) STATE.data.rewards = saved.rewards;
     if (saved.sessionLogs) STATE.data.sessionLogs = saved.sessionLogs;
     if (saved.messages) STATE.data.messages = saved.messages;
-    if (saved.skills) STATE.data.skills = saved.skills;
-    if (saved.sessionTools) STATE.data.sessionTools = saved.sessionTools;
-    if (saved.feedbackTemplates) STATE.data.feedbackTemplates = saved.feedbackTemplates;
+    // Do NOT load skills, sessionTools, feedbackTemplates from localStorage
+    // These should come from Supabase or defaults only
     if (saved.config) STATE.config = { ...STATE.config, ...saved.config, school: { ...STATE.config.school, ...(saved.config.school || {}) } };
     // NEW FEATURES DATA
     if (saved.studentFollowups) STATE.data.studentFollowups = saved.studentFollowups;
