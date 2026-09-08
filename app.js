@@ -1357,7 +1357,7 @@ const FORM_TYPES = [
 const SPECIAL_ED_FORM_TYPES = [
   { key: 'parentConsent',      name: 'موافقة ولي الأمر',     sub: 'الموافقة الرسمية على بدء الجلسات', icon: '✍️' },
   { key: 'initialData',        name: 'البيانات الأولية',     sub: 'بيانات الطالبة الأساسية (مشتركة بين المعلمات)', icon: '📝', shared: true },
-  { key: 'preAssessment',      name: 'التقييم القبلي',        sub: 'تقييم المستوى قبل بدء الخطة',       icon: '📋', allowPDF: true },
+  { key: 'preAssessment',      name: 'التقييم القبلي',        sub: 'رفع ملف pdf — تقييم المستوى قبل بدء الخطة',       icon: '📋', isPDF: true },
   { key: 'studentNotes',       name: 'ملاحظة الطالبة',        sub: 'رفع ملف pdf — ملاحظات دورية عن الطالبة', icon: '📝', isPDF: true },
 ];
 
