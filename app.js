@@ -5708,11 +5708,8 @@ document.addEventListener('submit', (e) => {
     if (!name) { toast('اسم الطالبة مطلوب', 'warn'); return; }
     if (name.length < 4) { toast('اسم الطالبة قصير جداً (الأقل ٤ أحرف)', 'warn'); return; }
     if (!stage || !section) { toast('اختاري المرحلة والفصل', 'warn'); return; }
-    // Validate Saudi phone
-    const phoneOK = /^(05\d{8}|9665\d{8}|\+9665\d{8})$/.test(parentPhone);
-    if (!phoneOK) { toast('رقم الجوال غير صحيح (مثال: 0501234567)', 'warn'); return; }
-    // Normalize to 05xxxxxxxx
-    const phoneNormalized = parentPhone.replace(/^\+?966/, '0').replace(/\D/g, '').replace(/^(?!05)/, '0');
+    // Phone validation removed - accept any format or empty
+    const phoneNormalized = parentPhone || ''; // Accept as-is
     // Duplicate name in same teacher's roster
     const dup = STATE.data.students.find(s => s.teacherId === STATE.user.id && s.name.trim() === name);
     if (dup) { toast(`يوجد طالبة بنفس الاسم في طلابكِ بالفعل`, 'warn'); return; }
@@ -5774,18 +5771,12 @@ document.addEventListener('submit', (e) => {
     if (!name) { toast('اسم الطالبة مطلوب', 'warn'); return; }
     if (!stage || !section) { toast('اختاري المرحلة والفصل', 'warn'); return; }
     
-    // Validate phone if provided
-    if (parentPhone) {
-      const phoneOK = /^(05\d{8}|9665\d{8}|\+9665\d{8})$/.test(parentPhone);
-      if (!phoneOK) { toast('رقم الجوال غير صحيح (مثال: 0501234567)', 'warn'); return; }
-    }
-    
     // Update student data
     st.name = name;
     st.grade = `${stage} ${section}`;
     if (age && age >= 3 && age <= 18) st.age = age;
     if (parentName) st.parentName = parentName;
-    if (parentPhone) st.parent_phone = parentPhone.replace(/^\+?966/, '0').replace(/\D/g, '').replace(/^(?!05)/, '0');
+    if (parentPhone) st.parent_phone = parentPhone; // Accept any format
     
     // Update initials
     st.initials = name.split(/\s+/).map(w => w[0]).slice(0,2).join('');
@@ -5837,14 +5828,12 @@ document.addEventListener('submit', (e) => {
     if (!newName) { toast('اسم الطالبة مطلوب', 'warn'); return; }
     if (!newGrade) { toast('اختاري المرحلة والفصل', 'warn'); return; }
     if (!Number.isFinite(newAge) || newAge < 3 || newAge > 18) { toast('العمر غير صحيح', 'warn'); return; }
-    if (!/^(05\d{8}|9665\d{8}|\+9665\d{8})$/.test(newPhone)) {
-      toast('رقم الجوال غير صحيح (مثال: 0501234567)', 'warn'); return;
-    }
+    // Phone validation removed - accept any format
 
     st.name = newName;
     st.grade = newGrade;
     st.age = newAge;
-    st.parentPhone = newPhone;
+    st.parentPhone = newPhone; // Accept any format
     // Recompute initials from new name
     st.initials = newName.split(/\s+/).map(w => w[0]).slice(0, 2).join('');
 
