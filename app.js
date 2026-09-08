@@ -5260,28 +5260,35 @@ document.addEventListener('click', async (e) => {
               .update({ teacher_id: null })
               .eq('teacher_id', tid);
             
-            if (unassignError) throw unassignError;
-          }
-          
-          // Delete auth user if auth_id exists
-          if (teacher.auth_id) {
-            try {
-              const { error: authError } = await window.supabaseAdmin.auth.admin.deleteUser(teacher.auth_id);
-              // Ignore 404 errors (user already deleted)
-              if (authError && authError.status !== 404) throw authError;
-            } catch (authErr) {
-              // If auth deletion fails, continue anyway (profile will be deleted below)
-              console.warn('Auth user deletion failed, continuing with profile deletion:', authErr);
+            if (unassignError) {
+              console.error('Error unassigning students:', unassignError);
+              // Continue anyway
             }
           }
           
-          // Delete user profile from users table
+          // Try to delete auth user (but don't fail if it doesn't exist)
+          if (teacher.auth_id) {
+            try {
+              await window.supabaseAdmin.auth.admin.deleteUser(teacher.auth_id);
+              console.log('✅ Auth user deleted');
+            } catch (authErr) {
+              // Ignore auth deletion errors - user might not exist
+              console.warn('⚠️ Auth user deletion failed (continuing anyway):', authErr.message);
+            }
+          }
+          
+          // ALWAYS delete user profile from users table - this is the critical step
           const { error: profileError } = await window.supabaseAdmin
             .from('users')
             .delete()
             .eq('id', tid);
           
-          if (profileError) throw profileError;
+          if (profileError) {
+            console.error('❌ Profile deletion failed:', profileError);
+            throw new Error('فشل حذف ملف المعلمة من قاعدة البيانات');
+          }
+          
+          console.log('✅ Profile deleted from database');
           
           // Remove from local state
           STATE.data.students.forEach(s => { if (s.teacher_id === tid) s.teacher_id = null; });
