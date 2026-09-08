@@ -8561,7 +8561,7 @@ function openStudentOptionsModal(sid) {
       </div>
       <div class="field">
         <label>رقم الجوال</label>
-        <input name="parentPhone" type="tel" value="${esc(st.parentPhone || '')}" placeholder="05xxxxxxxx" required>
+        <input name="parentPhone" type="text" value="${esc(st.parentPhone || '')}" placeholder="05xxxxxxxx (اختياري)">
         <div class="hint">يستخدمه ولي الأمر للدخول عبر رابط الدعوة.</div>
       </div>
 
