@@ -5263,9 +5263,25 @@ document.addEventListener('click', async (e) => {
             if (unassignError) throw unassignError;
           }
           
-          // Delete auth user (this will cascade to users table)
-          const { error: authError } = await window.supabaseAdmin.auth.admin.deleteUser(teacher.auth_id);
-          if (authError) throw authError;
+          // Delete auth user if auth_id exists
+          if (teacher.auth_id) {
+            try {
+              const { error: authError } = await window.supabaseAdmin.auth.admin.deleteUser(teacher.auth_id);
+              // Ignore 404 errors (user already deleted)
+              if (authError && authError.status !== 404) throw authError;
+            } catch (authErr) {
+              // If auth deletion fails, continue anyway (profile will be deleted below)
+              console.warn('Auth user deletion failed, continuing with profile deletion:', authErr);
+            }
+          }
+          
+          // Delete user profile from users table
+          const { error: profileError } = await window.supabaseAdmin
+            .from('users')
+            .delete()
+            .eq('id', tid);
+          
+          if (profileError) throw profileError;
           
           // Remove from local state
           STATE.data.students.forEach(s => { if (s.teacher_id === tid) s.teacher_id = null; });
