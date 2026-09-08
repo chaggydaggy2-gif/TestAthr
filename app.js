@@ -5249,13 +5249,36 @@ document.addEventListener('click', async (e) => {
         ? `حذف المعلمة "${teacher.name}" نهائياً؟\n\nتنبيه: لديها ${assignedCount} طالبة مسجلة — ستبقى الطالبات لكن بدون معلمة مخصصة.\n\nهذا الإجراء لا يمكن التراجع عنه.`
         : `حذف المعلمة "${teacher.name}" نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`;
       if (!confirm(confirmMsg)) return;
-      // Unassign students from this teacher
-      STATE.data.students.forEach(s => { if (s.teacher_id === tid) s.teacher_id = null; });
-      // Remove teacher from users
-      STATE.data.users = STATE.data.users.filter(u => u.id !== tid);
-      persistState();
-      toast(`تم حذف المعلمة ${teacher.name}`);
-      navigate('/principal/teachers');
+      
+      // Delete from Supabase using admin client
+      (async () => {
+        try {
+          // First, unassign students
+          if (assignedCount > 0) {
+            const { error: unassignError } = await window.supabaseAdmin
+              .from('students')
+              .update({ teacher_id: null })
+              .eq('teacher_id', tid);
+            
+            if (unassignError) throw unassignError;
+          }
+          
+          // Delete auth user (this will cascade to users table)
+          const { error: authError } = await window.supabaseAdmin.auth.admin.deleteUser(teacher.auth_id);
+          if (authError) throw authError;
+          
+          // Remove from local state
+          STATE.data.students.forEach(s => { if (s.teacher_id === tid) s.teacher_id = null; });
+          STATE.data.users = STATE.data.users.filter(u => u.id !== tid);
+          
+          toast(`تم حذف المعلمة ${teacher.name}`);
+          navigate('/principal/teachers');
+        } catch (error) {
+          console.error('Error deleting teacher:', error);
+          toast('حدث خطأ في حذف المعلمة: ' + error.message, 'error');
+        }
+      })();
+      
       return;
     }
     if (a === 'view-as-teacher') {
@@ -11824,8 +11847,8 @@ document.addEventListener('submit', async (e) => {
         },
       };
 
-      // Update in Supabase
-      const { data: teacher, error } = await window.supabaseClient
+      // Update in Supabase using admin client (bypass RLS)
+      const { data: teacher, error } = await window.supabaseAdmin
         .from('users')
         .update(updates)
         .eq('id', teacherId)
@@ -11839,7 +11862,6 @@ document.addEventListener('submit', async (e) => {
       if (index !== -1) {
         STATE.data.users[index] = { ...STATE.data.users[index], ...teacher };
       }
-      persistState();
       
       closeModal();
       toast(`تم تحديث بيانات ${teacher.name} بنجاح`);
