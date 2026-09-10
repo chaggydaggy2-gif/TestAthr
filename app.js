@@ -11356,7 +11356,7 @@ document.addEventListener('submit', async (e) => {
       
       if (!st) throw new Error('Student not found');
       if (!file || file.size === 0) throw new Error('الرجاء اختيار ملف');
-      if (file.size > 30 * 1024 * 1024) throw new Error('حجم الملف يتجاوز 30 ميجابايت');
+      // No size limit - upload whatever you want!
       if (file.type !== 'application/pdf') throw new Error('يجب أن يكون الملف بصيغة PDF');
       
       // Upload to Supabase Storage
@@ -11560,7 +11560,7 @@ document.addEventListener('submit', async (e) => {
       
       if (!st) throw new Error('Student not found');
       if (!file || file.size === 0) throw new Error('الرجاء اختيار ملف');
-      if (file.size > 30 * 1024 * 1024) throw new Error('حجم الملف يتجاوز 30 ميجابايت');
+      // No size limit - upload whatever you want!
       if (file.type !== 'application/pdf') throw new Error('يجب أن يكون الملف بصيغة PDF');
       
       // Upload to Supabase Storage
