@@ -12269,81 +12269,86 @@ async function loadDataFromSupabase() {
     
     // ========== LOAD NEW FEATURES DATA ==========
     
-    // Load student followups
-    let followupsQuery = window.supabaseClient
-      .from('student_followups')
-      .select('*');
+    // Load student followups - DISABLED (table doesn't exist)
+    // let followupsQuery = window.supabaseClient
+    //   .from('student_followups')
+    //   .select('*');
     
-    if (STATE.user.role === 'teacher') {
-      // Teachers see only their own followups or followups for their school
-      followupsQuery = followupsQuery.or(`teacher_id.eq.${STATE.user.id},school_id.eq.${STATE.user.school_id}`);
-    } else if (STATE.user.role === 'student') {
-      // Students see their own followups
-      followupsQuery = followupsQuery.eq('student_id', STATE.user.id);
-    }
+    // if (STATE.user.role === 'teacher') {
+    //   // Teachers see only their own followups or followups for their school
+    //   followupsQuery = followupsQuery.or(`teacher_id.eq.${STATE.user.id},school_id.eq.${STATE.user.school_id}`);
+    // } else if (STATE.user.role === 'student') {
+    //   // Students see their own followups
+    //   followupsQuery = followupsQuery.eq('student_id', STATE.user.id);
+    // }
     
-    const { data: followups } = await followupsQuery;
-    if (followups) {
-      STATE.data.studentFollowups = followups.map(f => ({
-        id: f.id,
-        studentId: f.student_id,
-        teacher_id: f.teacher_id,
-        date_from: f.date_from,
-        date_to: f.date_to,
-        goal_1_id: f.goal_1_id,
-        goal_2_id: f.goal_2_id,
-        custom_goal_1: f.custom_goal_1,
-        custom_goal_1_type: f.custom_goal_1_type,
-        custom_goal_2: f.custom_goal_2,
-        custom_goal_2_type: f.custom_goal_2_type,
-        tools: typeof f.tools === 'string' ? JSON.parse(f.tools) : (f.tools || []),
-        notes: f.notes,
-        created_at: f.created_at,
-        updated_at: f.updated_at
-      }));
-      console.log('✅ Loaded student followups:', followups.length);
-    }
+    // const { data: followups } = await followupsQuery;
+    // if (followups) {
+    //   STATE.data.studentFollowups = followups.map(f => ({
+    //     id: f.id,
+    //     studentId: f.student_id,
+    //     teacher_id: f.teacher_id,
+    //     date_from: f.date_from,
+    //     date_to: f.date_to,
+    //     goal_1_id: f.goal_1_id,
+    //     goal_2_id: f.goal_2_id,
+    //     custom_goal_1: f.custom_goal_1,
+    //     custom_goal_1_type: f.custom_goal_1_type,
+    //     custom_goal_2: f.custom_goal_2,
+    //     custom_goal_2_type: f.custom_goal_2_type,
+    //     tools: typeof f.tools === 'string' ? JSON.parse(f.tools) : (f.tools || []),
+    //     notes: f.notes,
+    //     created_at: f.created_at,
+    //     updated_at: f.updated_at
+    //   }));
+    //   console.log('✅ Loaded student followups:', followups.length);
+    // }
+    STATE.data.studentFollowups = []; // Empty for now
     
-    // Load auditory memory tests
-    let memoryTestsQuery = window.supabaseClient
-      .from('auditory_memory_tests')
-      .select('*');
+    // Load auditory memory tests - DISABLED (table doesn't exist)
+    // let memoryTestsQuery = window.supabaseClient
+    //   .from('auditory_memory_tests')
+    //   .select('*');
     
-    if (STATE.user.role === 'teacher') {
-      memoryTestsQuery = memoryTestsQuery.or(`teacher_id.eq.${STATE.user.id},school_id.eq.${STATE.user.school_id}`);
-    } else if (STATE.user.role === 'student') {
-      memoryTestsQuery = memoryTestsQuery.eq('student_id', STATE.user.id);
-    }
+    // if (STATE.user.role === 'teacher') {
+    //   memoryTestsQuery = memoryTestsQuery.or(`teacher_id.eq.${STATE.user.id},school_id.eq.${STATE.user.school_id}`);
+    // } else if (STATE.user.role === 'student') {
+    //   memoryTestsQuery = memoryTestsQuery.eq('student_id', STATE.user.id);
+    // }
     
-    const { data: memoryTests } = await memoryTestsQuery;
-    if (memoryTests) {
-      STATE.data.auditoryMemoryTests = memoryTests.map(t => ({
-        id: t.id,
-        studentId: t.student_id,
-        teacher_id: t.teacher_id,
-        test_type: t.test_type,
-        test_data: typeof t.test_data === 'string' ? JSON.parse(t.test_data) : (t.test_data || {}),
-        score: t.score,
-        total_score: t.total_score,
-        notes: t.notes,
-        tested_at: t.tested_at,
-        created_at: t.created_at,
-        updated_at: t.updated_at
-      }));
-      console.log('✅ Loaded auditory memory tests:', memoryTests.length);
-    }
+    // const { data: memoryTests } = await memoryTestsQuery;
+    // if (memoryTests) {
+    //   STATE.data.auditoryMemoryTests = memoryTests.map(t => ({
+    //     id: t.id,
+    //     studentId: t.student_id,
+    //     teacher_id: t.teacher_id,
+    //     test_type: t.test_type,
+    //     test_data: typeof t.test_data === 'string' ? JSON.parse(t.test_data) : (t.test_data || {}),
+    //     score: t.score,
+    //     total_score: t.total_score,
+    //     notes: t.notes,
+    //     tested_at: t.tested_at,
+    //     created_at: t.created_at,
+    //     updated_at: t.updated_at
+    //   }));
+    //   console.log('✅ Loaded auditory memory tests:', memoryTests.length);
+    // }
+    STATE.data.auditoryMemoryTests = []; // Empty for now
     
-    // Load initial reports
-    let reportsQuery = window.supabaseClient
-      .from('initial_reports')
-      .select('*');
+    // Load initial reports - DISABLED (table doesn't exist)
+    // let reportsQuery = window.supabaseClient
+    //   .from('initial_reports')
+    //   .select('*');
     
-    if (STATE.user.role === 'teacher') {
-      reportsQuery = reportsQuery.or(`teacher_id.eq.${STATE.user.id},school_id.eq.${STATE.user.school_id}`);
-    } else if (STATE.user.role === 'student') {
-      reportsQuery = reportsQuery.eq('student_id', STATE.user.id);
-    }
+    // if (STATE.user.role === 'teacher') {
+    //   reportsQuery = reportsQuery.or(`teacher_id.eq.${STATE.user.id},school_id.eq.${STATE.user.school_id}`);
+    // } else if (STATE.user.role === 'student') {
+    //   reportsQuery = reportsQuery.eq('student_id', STATE.user.id);
+    // }
+    STATE.data.initialReports = []; // Empty for now
     
+    // Commented out the rest of initial reports loading
+    /*
     const { data: reports } = await reportsQuery;
     if (reports) {
       STATE.data.initialReports = reports.map(r => ({
@@ -12359,6 +12364,7 @@ async function loadDataFromSupabase() {
       }));
       console.log('✅ Loaded initial reports:', reports.length);
     }
+    */
     
     // ========== END LOAD NEW FEATURES DATA ==========
     
