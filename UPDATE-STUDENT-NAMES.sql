@@ -17,8 +17,7 @@ BEGIN
   UPDATE students
   SET 
     name = 'إيلاف العتيبي',
-    initials = 'إ',
-    updated_at = NOW()
+    initials = 'إ'
   WHERE LOWER(name) = 'mohamed';
 
   IF FOUND THEN
@@ -34,8 +33,7 @@ BEGIN
   UPDATE students
   SET 
     name = 'ليندا الغامدي',
-    initials = 'ل',
-    updated_at = NOW()
+    initials = 'ل'
   WHERE LOWER(name) = 'selma';
 
   IF FOUND THEN
