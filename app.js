@@ -11365,7 +11365,8 @@ document.addEventListener('submit', async (e) => {
         .from('student-documents')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: 'application/pdf'
         });
       
       if (uploadError) throw uploadError;
@@ -11569,7 +11570,8 @@ document.addEventListener('submit', async (e) => {
         .from('student-documents')
         .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: 'application/pdf'
         });
       
       if (uploadError) throw uploadError;
