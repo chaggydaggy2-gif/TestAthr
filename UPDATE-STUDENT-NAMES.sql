@@ -65,7 +65,7 @@ SELECT
   initials as "الحرف",
   grade as "الصف",
   age as "العمر",
-  updated_at as "آخر تحديث"
+  created_at as "تاريخ الإنشاء"
 FROM students
 WHERE name IN ('إيلاف العتيبي', 'ليندا الغامدي')
 ORDER BY name;
