@@ -22,7 +22,8 @@ DO UPDATE SET
 -- 2. Create storage policies for authenticated users
 
 -- Policy: Allow teachers to upload
-CREATE POLICY IF NOT EXISTS "Teachers can upload documents" 
+DROP POLICY IF EXISTS "Teachers can upload documents" ON storage.objects;
+CREATE POLICY "Teachers can upload documents" 
 ON storage.objects FOR INSERT 
 TO authenticated
 WITH CHECK (
@@ -31,7 +32,8 @@ WITH CHECK (
 );
 
 -- Policy: Allow teachers to read their students' documents
-CREATE POLICY IF NOT EXISTS "Teachers can view documents" 
+DROP POLICY IF EXISTS "Teachers can view documents" ON storage.objects;
+CREATE POLICY "Teachers can view documents" 
 ON storage.objects FOR SELECT 
 TO authenticated
 USING (
@@ -40,7 +42,8 @@ USING (
 );
 
 -- Policy: Allow teachers to delete documents
-CREATE POLICY IF NOT EXISTS "Teachers can delete documents" 
+DROP POLICY IF EXISTS "Teachers can delete documents" ON storage.objects;
+CREATE POLICY "Teachers can delete documents" 
 ON storage.objects FOR DELETE 
 TO authenticated
 USING (
@@ -49,7 +52,8 @@ USING (
 );
 
 -- Policy: Allow teachers to update documents
-CREATE POLICY IF NOT EXISTS "Teachers can update documents" 
+DROP POLICY IF EXISTS "Teachers can update documents" ON storage.objects;
+CREATE POLICY "Teachers can update documents" 
 ON storage.objects FOR UPDATE 
 TO authenticated
 USING (
