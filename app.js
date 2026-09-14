@@ -11360,7 +11360,12 @@ document.addEventListener('submit', async (e) => {
       if (file.type !== 'application/pdf') throw new Error('يجب أن يكون الملف بصيغة PDF');
       
       // Upload to Supabase Storage
-      const fileName = `${sid}/${fkey}/${Date.now()}_${file.name}`;
+      // Sanitize filename - replace Arabic/special chars with safe characters
+      const sanitizedName = file.name
+        .replace(/[^\x00-\x7F]/g, '_')  // Replace non-ASCII with underscore
+        .replace(/\s+/g, '_')            // Replace spaces with underscore
+        .replace(/_{2,}/g, '_');         // Replace multiple underscores with one
+      const fileName = `${sid}/${fkey}/${Date.now()}_${sanitizedName}`;
       const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
         .from('student-documents')
         .upload(fileName, file, {
@@ -11565,7 +11570,12 @@ document.addEventListener('submit', async (e) => {
       if (file.type !== 'application/pdf') throw new Error('يجب أن يكون الملف بصيغة PDF');
       
       // Upload to Supabase Storage
-      const fileName = `${sid}/iep/${Date.now()}_${file.name}`;
+      // Sanitize filename - replace Arabic/special chars with safe characters
+      const sanitizedName = file.name
+        .replace(/[^\x00-\x7F]/g, '_')  // Replace non-ASCII with underscore
+        .replace(/\s+/g, '_')            // Replace spaces with underscore
+        .replace(/_{2,}/g, '_');         // Replace multiple underscores with one
+      const fileName = `${sid}/iep/${Date.now()}_${sanitizedName}`;
       const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
         .from('student-documents')
         .upload(fileName, file, {
