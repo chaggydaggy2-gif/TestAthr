@@ -1685,10 +1685,21 @@ function renderFormsTab(st) {
           data = st.shared_initial_data || {};
           completed = data.completed || false;
         } else if (ft.isPDF) {
-          // PDF forms - check special_ed_forms
+          // PDF forms - check special_ed_forms (per-teacher storage)
+          const teacherId = STATE.user.id;
           const pdfData = st.special_ed_forms?.[ft.key];
-          completed = !!pdfData;
-          data = { pdfUrl: pdfData };
+          
+          // Check if current teacher has uploaded a file
+          const myPdfUrl = pdfData?.[teacherId];
+          completed = !!myPdfUrl;
+          
+          // Count total uploads from all teachers
+          const totalUploads = pdfData ? Object.keys(pdfData).length : 0;
+          
+          data = { 
+            pdfUrl: myPdfUrl,
+            totalUploads: totalUploads
+          };
         } else if (ft.isNotes) {
           // Student notes - check special_ed_forms.student_notes
           const notes = st.special_ed_forms?.student_notes || [];
@@ -1717,23 +1728,25 @@ function renderFormsTab(st) {
             ${completed && data.score !== undefined
               ? `<div class="form-card-score">${arNum(data.score)}<span>/100</span></div>`
               : `<p class="form-card-sub">${esc(ft.sub)}</p>`}
-            ${ft.isNotes && completed
+            ${ft.isPDF && data.totalUploads > 0
+              ? `<p class="form-card-sub">${arNum(data.totalUploads)} ملف من ${data.totalUploads === 1 ? 'معلمة' : 'معلمات'}</p>`
+              : ft.isNotes && completed
               ? `<p class="form-card-sub">${arNum(data.notes.length)} ملاحظة</p>`
               : ''}
             <div class="row" style="gap:8px">
               ${ft.isPDF ? `
-                <button class="btn ${completed ? 'ghost' : 'soft'} block form-card-btn"
-                  data-action="${completed ? 'view-pdf' : 'upload-pdf'}"
+                <button class="btn ${completed ? 'soft' : 'soft'} block form-card-btn"
+                  data-action="upload-pdf"
                   data-sid="${st.id}" data-fkey="${ft.key}">
-                  ${completed ? I.eye : I.upload}
-                  <span>${completed ? 'عرض' : 'رفع'}</span>
+                  ${I.upload}
+                  <span>${completed ? 'رفع آخر' : 'رفع'}</span>
                 </button>
-                ${completed ? `
+                ${data.totalUploads > 0 ? `
                   <button class="btn ghost form-card-btn"
-                    data-action="upload-pdf"
+                    data-action="view-all-pdfs"
                     data-sid="${st.id}" data-fkey="${ft.key}">
-                    ${I.upload}
-                    <span>تحديث</span>
+                    ${I.eye}
+                    <span>عرض الكل</span>
                   </button>
                 ` : ''}
               ` : ft.isNotes ? `
@@ -4874,6 +4887,17 @@ document.addEventListener('click', async (e) => {
       viewPDFDocument(sid, fkey);
       return;
     }
+    if (a === 'view-all-pdfs') {
+      const sid = action.getAttribute('data-sid');
+      const fkey = action.getAttribute('data-fkey');
+      viewAllPDFsModal(sid, fkey);
+      return;
+    }
+    if (a === 'view-single-pdf') {
+      const url = action.getAttribute('data-url');
+      viewSinglePDF(url);
+      return;
+    }
     if (a === 'manage-notes') {
       const sid = action.getAttribute('data-sid');
       openStudentNotesModal(sid);
@@ -7527,6 +7551,65 @@ async function viewPDFDocument(sid, fkey) {
     console.error('Error viewing PDF:', error);
     toast('حدث خطأ أثناء فتح الملف', 'error');
   }
+}
+
+async function viewSinglePDF(pdfUrl) {
+  try {
+    // Get signed URL from Supabase Storage
+    const { data, error } = await window.supabaseClient.storage
+      .from('student-documents')
+      .createSignedUrl(pdfUrl, 3600); // Valid for 1 hour
+    
+    if (error) throw error;
+    
+    // Open in new tab
+    window.open(data.signedUrl, '_blank');
+  } catch (error) {
+    console.error('Error viewing PDF:', error);
+    toast('حدث خطأ أثناء فتح الملف', 'error');
+  }
+}
+
+async function viewAllPDFsModal(sid, fkey) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  const formType = SPECIAL_ED_FORM_TYPES.find(f => f.key === fkey);
+  const pdfData = st.special_ed_forms?.[fkey] || {};
+  const uploads = Object.entries(pdfData).map(([teacherId, data]) => ({
+    teacherId,
+    ...data
+  }));
+  
+  if (uploads.length === 0) {
+    toast('لا توجد ملفات محملة', 'error');
+    return;
+  }
+  
+  openModal(`
+    <div class="modal-head">
+      <h2>📄 ${esc(formType?.name || 'الملفات')} — ${esc(st.name)}</h2>
+      <button class="x" data-action="close-modal">${I.close}</button>
+    </div>
+    
+    <div class="text-sm text-muted mb-md">
+      ${arNum(uploads.length)} ${uploads.length === 1 ? 'ملف' : 'ملفات'} من ${uploads.length === 1 ? 'معلمة' : 'معلمات'} مختلفة
+    </div>
+    
+    <div class="stack gap-sm">
+      ${uploads.map((upload, idx) => `
+        <div class="card" style="padding:16px">
+          <div class="row between mb-sm">
+            <div class="text-bold">${esc(upload.uploadedByName)}</div>
+            <div class="text-xs text-muted">${fmtDate(upload.uploadedAt?.split('T')[0])}</div>
+          </div>
+          <button class="btn soft sm block" data-action="view-single-pdf" data-url="${esc(upload.url)}">
+            ${I.eye}<span>عرض الملف</span>
+          </button>
+        </div>
+      `).join('')}
+    </div>
+  `, { lg: true });
 }
 
 function openStudentNotesModal(sid) {
@@ -11378,15 +11461,22 @@ document.addEventListener('submit', async (e) => {
       
       // Initialize special_ed_forms if needed
       if (!st.special_ed_forms) {
-        st.special_ed_forms = {
-          medical_diagnosis_pdf: null,
-          diagnostic_test_pdf: null,
-          student_notes: []
-        };
+        st.special_ed_forms = {};
       }
       
-      // Update form data with file path
-      st.special_ed_forms[fkey] = fileName;
+      // Store per-teacher (each teacher has their own PDF)
+      const teacherId = STATE.user.id;
+      if (!st.special_ed_forms[fkey]) {
+        st.special_ed_forms[fkey] = {};
+      }
+      
+      // Save with teacher metadata
+      st.special_ed_forms[fkey][teacherId] = {
+        url: fileName,
+        uploadedBy: teacherId,
+        uploadedByName: STATE.user.name,
+        uploadedAt: new Date().toISOString()
+      };
       
       // Save to Supabase
       const { error } = await window.supabaseClient
@@ -11398,7 +11488,7 @@ document.addEventListener('submit', async (e) => {
       
       persistState();
       closeModal();
-      toast('✅ تم رفع الملف بنجاح');
+      toast(`✅ تم رفع الملف بنجاح من ${STATE.user.name}`);
       
       // Reload the page to show updated status
       handleRoute();
