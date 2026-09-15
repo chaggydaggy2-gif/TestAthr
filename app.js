@@ -1698,7 +1698,8 @@ function renderFormsTab(st) {
           
           data = { 
             pdfUrl: myPdfUrl,
-            totalUploads: totalUploads
+            totalUploads: totalUploads,
+            hasMyUpload: completed  // Track if current teacher uploaded
           };
         } else if (ft.isNotes) {
           // Student notes - check special_ed_forms.student_notes
@@ -1735,11 +1736,11 @@ function renderFormsTab(st) {
               : ''}
             <div class="row" style="gap:8px">
               ${ft.isPDF ? `
-                <button class="btn ${completed ? 'soft' : 'soft'} block form-card-btn"
+                <button class="btn ${data.hasMyUpload ? 'ghost' : 'soft'} block form-card-btn"
                   data-action="upload-pdf"
                   data-sid="${st.id}" data-fkey="${ft.key}">
                   ${I.upload}
-                  <span>${completed ? 'رفع آخر' : 'رفع'}</span>
+                  <span>${data.hasMyUpload ? 'تحديث' : 'رفع'}</span>
                 </button>
                 ${data.totalUploads > 0 ? `
                   <button class="btn ghost form-card-btn"
