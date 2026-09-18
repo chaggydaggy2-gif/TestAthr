@@ -10009,6 +10009,16 @@ function openAddFollowupModal(sid) {
             ${planGoals.map(g => `<option value="${g.id}">${esc(g.text || g.goal || g)}</option>`).join('')}
           </select>
           <div class="mt-xs">
+            <label class="text-sm text-muted">تصنيف الهدف:</label>
+            <select name="goal_1_category" class="mt-xs">
+              <option value="">-- نوع الهدف --</option>
+              <option value="تمهيدي">تمهيدي</option>
+              <option value="استقبالي">استقبالي</option>
+              <option value="تعبيري">تعبيري</option>
+              <option value="نطق">نطق</option>
+            </select>
+          </div>
+          <div class="mt-xs">
             <label class="text-sm text-muted">تقييم الهدف:</label>
             <div class="row" style="gap:8px;margin-top:6px">
               <label class="radio-chip">
@@ -10032,6 +10042,16 @@ function openAddFollowupModal(sid) {
             <option value="">-- اختر هدف من الخطة --</option>
             ${planGoals.map(g => `<option value="${g.id}">${esc(g.text || g.goal || g)}</option>`).join('')}
           </select>
+          <div class="mt-xs">
+            <label class="text-sm text-muted">تصنيف الهدف:</label>
+            <select name="goal_2_category" class="mt-xs">
+              <option value="">-- نوع الهدف --</option>
+              <option value="تمهيدي">تمهيدي</option>
+              <option value="استقبالي">استقبالي</option>
+              <option value="تعبيري">تعبيري</option>
+              <option value="نطق">نطق</option>
+            </select>
+          </div>
           <div class="mt-xs">
             <label class="text-sm text-muted">تقييم الهدف:</label>
             <div class="row" style="gap:8px;margin-top:6px">
