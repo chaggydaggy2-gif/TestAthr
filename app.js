@@ -2184,7 +2184,6 @@ function renderFollowTab(st, plan) {
     <div class="card">
       <div class="card-title">
         <h3>سجل الجلسات (${arNum(logs.length)})</h3>
-        <button class="btn soft sm" data-action="add-session" data-sid="${st.id}">${I.plus}<span>جلسة جديدة</span></button>
       </div>
       ${logs.length ? (() => {
         const [latest, ...older] = logs;
