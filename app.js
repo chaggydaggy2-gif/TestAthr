@@ -8210,13 +8210,13 @@ function openSpecialEdSessionModal(sid, sessionIdx = null) {
                 <option value="not_achieved" ${goal.evaluation === 'not_achieved' ? 'selected' : ''}>لم يتحقق</option>
               </select>
             </div>
-            <button type="button" class="btn soft sm" onclick="removeProceduralGoal(${idx})">
+            <button type="button" class="btn soft sm" data-action="remove-procedural-goal" data-idx="${idx}">
               ${I.trash}<span>حذف</span>
             </button>
           </div>
         `).join('')}
       </div>
-      <button type="button" class="btn ghost block" onclick="addProceduralGoal()">
+      <button type="button" class="btn ghost block" data-action="add-procedural-goal">
         ${I.plus}<span>إضافة هدف إجرائي</span>
       </button>
       
@@ -8273,37 +8273,62 @@ function openSpecialEdSessionModal(sid, sessionIdx = null) {
     </form>
     
     <script>
-      let proceduralGoalCounter = ${proceduralGoals.length};
-      
-      function addProceduralGoal() {
-        const container = document.getElementById('procedural-goals-container');
-        const idx = proceduralGoalCounter++;
-        const goalHTML = \`
-          <div class="procedural-goal-item" data-idx="\${idx}">
-            <div class="field">
-              <label>الهدف \${idx + 1}</label>
-              <textarea name="procedural_goal_\${idx}" rows="2" required></textarea>
-            </div>
-            <div class="field">
-              <label>التقييم</label>
-              <select name="evaluation_\${idx}">
-                <option value="achieved">تحقق</option>
-                <option value="partial">تحقق جزئياً</option>
-                <option value="not_achieved">لم يتحقق</option>
-              </select>
-            </div>
-            <button type="button" class="btn soft sm" onclick="removeProceduralGoal(\${idx})">
-              ${I.trash}<span>حذف</span>
-            </button>
-          </div>
-        \`;
-        container.insertAdjacentHTML('beforeend', goalHTML);
-      }
-      
-      function removeProceduralGoal(idx) {
-        const item = document.querySelector(\`.procedural-goal-item[data-idx="\${idx}"]\`);
-        if (item) item.remove();
-      }
+      (function() {
+        let proceduralGoalCounter = ${proceduralGoals.length};
+        const trashIcon = \`${I.trash.replace(/`/g, '\\`')}\`;
+        
+        // Add event listener for "add procedural goal" button
+        const addBtn = document.querySelector('[data-action="add-procedural-goal"]');
+        if (addBtn) {
+          addBtn.addEventListener('click', function() {
+            const container = document.getElementById('procedural-goals-container');
+            const idx = proceduralGoalCounter++;
+            const goalHTML = \`
+              <div class="procedural-goal-item" data-idx="\${idx}">
+                <div class="field">
+                  <label>الهدف \${arNum(idx + 1)}</label>
+                  <textarea name="procedural_goal_\${idx}" rows="2" required></textarea>
+                </div>
+                <div class="field">
+                  <label>التقييم</label>
+                  <select name="evaluation_\${idx}">
+                    <option value="achieved">تحقق</option>
+                    <option value="partial">تحقق جزئياً</option>
+                    <option value="not_achieved">لم يتحقق</option>
+                  </select>
+                </div>
+                <button type="button" class="btn soft sm" data-action="remove-procedural-goal" data-idx="\${idx}">
+                  \${trashIcon}<span>حذف</span>
+                </button>
+              </div>
+            \`;
+            container.insertAdjacentHTML('beforeend', goalHTML);
+            
+            // Add event listener for the new remove button
+            const newItem = container.querySelector(\`.procedural-goal-item[data-idx="\${idx}"]\`);
+            const removeBtn = newItem.querySelector('[data-action="remove-procedural-goal"]');
+            if (removeBtn) {
+              removeBtn.addEventListener('click', function() {
+                newItem.remove();
+              });
+            }
+          });
+        }
+        
+        // Add event listeners for existing remove buttons
+        document.querySelectorAll('[data-action="remove-procedural-goal"]').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const idx = this.getAttribute('data-idx');
+            const item = document.querySelector(\`.procedural-goal-item[data-idx="\${idx}"]\`);
+            if (item) item.remove();
+          });
+        });
+        
+        function arNum(n) {
+          const ar = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+          return String(n).split('').map(d => /\\d/.test(d) ? ar[+d] : d).join('');
+        }
+      })();
     </script>
   `, { lg: true });
 }
