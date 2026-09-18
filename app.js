@@ -1098,9 +1098,57 @@ function viewTeacherDashboard() {
   })();
 
   const firstName = me.name.replace(/^أ\.\s*/, '').split(/\s+/)[0];
+  
+  // Count unread messages from parents
+  const unreadParentMessages = STATE.data.messages.filter(m => m.from === 'parent' && !m.read);
+  const totalUnread = unreadParentMessages.length;
+  
+  // Group unread messages by student
+  const unreadByStudent = {};
+  unreadParentMessages.forEach(msg => {
+    if (!unreadByStudent[msg.studentId]) {
+      unreadByStudent[msg.studentId] = 0;
+    }
+    unreadByStudent[msg.studentId]++;
+  });
 
   return `
     <div class="simple-home">
+      ${totalUnread > 0 ? `
+        <div class="card mb-md" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #f59e0b; border-radius: 12px;">
+          <div class="row" style="gap: 16px; align-items: center;">
+            <div style="font-size: 48px;">📬</div>
+            <div style="flex: 1;">
+              <h3 style="margin: 0 0 6px 0; color: #92400e;">رسائل جديدة من أولياء الأمور!</h3>
+              <p style="margin: 0; font-size: 14px; color: #78350f;">
+                لديكِ <strong>${arNum(totalUnread)}</strong> ${totalUnread === 1 ? 'رسالة غير مقروءة' : 'رسائل غير مقروءة'} من ${arNum(Object.keys(unreadByStudent).length)} ${Object.keys(unreadByStudent).length === 1 ? 'طالبة' : 'طالبات'}
+              </p>
+              <div class="stack gap-xs mt-sm">
+                ${Object.entries(unreadByStudent).slice(0, 3).map(([sid, count]) => {
+                  const student = studentBy(sid);
+                  if (!student) return '';
+                  return `
+                    <a href="#/teacher/student/${sid}?tab=messages" data-route="#/teacher/student/${sid}" 
+                       style="display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(255,255,255,0.7); border-radius: 6px; text-decoration: none; color: inherit;">
+                      ${avatar(student, 'sm')}
+                      <div style="flex: 1; font-size: 13px; font-weight: 600;">${esc(student.name)}</div>
+                      <div style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                        ${arNum(count)}
+                      </div>
+                    </a>
+                  `;
+                }).join('')}
+                ${Object.keys(unreadByStudent).length > 3 ? `
+                  <div style="text-align: center; font-size: 12px; color: #78350f; padding-top: 4px;">
+                    و ${arNum(Object.keys(unreadByStudent).length - 3)} طالبات أخريات
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+      
       <div class="greet-block">
         <div class="greet-eyebrow">
           <span>${isToday ? 'اليوم' : 'يوم'} — ${fmtDate(sessionDateIso)}</span>
@@ -1417,6 +1465,38 @@ function viewStudentProfile(id, role) {
         </div>
       </dl>
     </div>
+
+    ${(() => {
+      const unreadFromParent = STATE.data.messages.filter(m => m.studentId === st.id && m.from === 'parent' && !m.read).length;
+      if (!unreadFromParent) return '';
+      return `
+        <div class="card mb-md" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #f59e0b; border-radius: 12px; animation: pulse-soft 2s infinite;">
+          <div class="row" style="gap: 16px; align-items: center;">
+            <div style="font-size: 48px; animation: shake 0.5s infinite;">🔔</div>
+            <div style="flex: 1;">
+              <h3 style="margin: 0 0 6px 0; color: #92400e;">رسالة جديدة من ولي الأمر!</h3>
+              <p style="margin: 0; font-size: 14px; color: #78350f;">
+                لديكِ <strong>${arNum(unreadFromParent)}</strong> ${unreadFromParent === 1 ? 'رسالة غير مقروءة' : 'رسائل غير مقروءة'} من ولي أمر ${esc(st.name)}
+              </p>
+            </div>
+            <a class="btn" href="#/teacher/student/${st.id}?tab=messages" data-route="#/teacher/student/${st.id}" style="background: #f59e0b; color: white; white-space: nowrap;">
+              ${I.eye}<span>عرض الرسائل</span>
+            </a>
+          </div>
+        </div>
+        <style>
+          @keyframes pulse-soft {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+          }
+          @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+          }
+        </style>
+      `;
+    })()}
 
     <div class="tabs" data-tabs="profile">
       <div class="tab ${activeTab==='forms'?'active':''}"    data-tab="forms">📋 النماذج</div>
