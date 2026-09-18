@@ -10074,10 +10074,10 @@ function openAddFollowupModal(sid) {
 
       <!-- الأهداف اليدوية -->
       <div class="field-group">
-        <label class="section-label">✍️ أهداف يدوية (اختياري)</label>
+        <label class="section-label">✍️ هدف يدوي (اختياري)</label>
         <div class="field">
-          <label>هدف يدوي أول</label>
-          <textarea name="custom_goal_1" rows="2" placeholder="اكتبي هدف مخصص..."></textarea>
+          <label>هدف مخصص</label>
+          <textarea name="custom_goal_1" rows="2" placeholder="اكتبي هدف مخصص... (اختياري - يمكن تركه فارغاً)"></textarea>
           <select name="custom_goal_1_type" class="mt-xs">
             <option value="">-- نوع الهدف --</option>
             <option value="تمهيدي">تمهيدي</option>
@@ -10098,34 +10098,6 @@ function openAddFollowupModal(sid) {
               </label>
               <label class="radio-chip">
                 <input type="radio" name="custom_goal_1_evaluation" value="not_mastered" hidden>
-                <span>لم يتقن</span>
-              </label>
-            </div>
-          </div>
-        </div>
-        <div class="field">
-          <label>هدف يدوي ثاني</label>
-          <textarea name="custom_goal_2" rows="2" placeholder="اكتبي هدف مخصص..."></textarea>
-          <select name="custom_goal_2_type" class="mt-xs">
-            <option value="">-- نوع الهدف --</option>
-            <option value="تمهيدي">تمهيدي</option>
-            <option value="استقبالي">استقبالي</option>
-            <option value="تعبيري">تعبيري</option>
-            <option value="نطق">نطق</option>
-          </select>
-          <div class="mt-xs">
-            <label class="text-sm text-muted">تقييم الهدف:</label>
-            <div class="row" style="gap:8px;margin-top:6px">
-              <label class="radio-chip">
-                <input type="radio" name="custom_goal_2_evaluation" value="mastered" hidden>
-                <span>أتقن</span>
-              </label>
-              <label class="radio-chip">
-                <input type="radio" name="custom_goal_2_evaluation" value="partial" hidden>
-                <span>جزئياً</span>
-              </label>
-              <label class="radio-chip">
-                <input type="radio" name="custom_goal_2_evaluation" value="not_mastered" hidden>
                 <span>لم يتقن</span>
               </label>
             </div>
