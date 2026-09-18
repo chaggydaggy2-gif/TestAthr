@@ -685,6 +685,7 @@ async function handleRoute() {
       library:   () => viewLibrary('parent'),
       settings:  () => viewSettings('parent'),
       form:      () => viewParentForm(id),
+      iep:       viewParentIEP,
     })[screen];
   }
 
@@ -3561,6 +3562,19 @@ function viewParentDashboard() {
                 </div>
               `;
             }).join('')}
+            
+            <!-- الخطة الفردية -->
+            <div class="row between" style="padding:8px 0;border-bottom:1px dashed var(--border)">
+              <div class="row">
+                <div style="font-size:18px">📋</div>
+                <div class="text-sm">الخطة الفردية</div>
+              </div>
+              ${plan && plan.goals ? `
+                <a class="btn sm soft" href="#/parent/iep" data-route="#/parent/iep">
+                  ${I.eye}<span>عرض</span>
+                </a>
+              ` : pill('بانتظار','amber dot')}
+            </div>
           </div>
         </div>
 
@@ -3963,6 +3977,169 @@ function viewParentProgress() {
           <div class="ico">${I.chart}</div>
           <h4>لا توجد خطة تعليمية بعد</h4>
           <p>سيتم عرض التقدم عند إنشاء المعلمة للخطة التعليمية</p>
+        </div>
+      </div>
+    `}
+  `;
+}
+
+function viewParentIEP() {
+  const me = STATE.user;
+  const child = studentBy(me.studentId);
+  
+  if (!child) {
+    return `
+      <div class="empty">
+        <div class="ico">${I.search}</div>
+        <h4>لم يتم العثور على ملف الطالب</h4>
+      </div>
+    `;
+  }
+  
+  const plan = STATE.data.plans.find(p => p.studentId === child.id);
+  const teacher = userBy(child.teacher_id);
+  
+  if (!plan || !plan.goals) {
+    return `
+      <div class="page-head">
+        <div>
+          <h1>الخطة الفردية 📋</h1>
+          <div class="sub">خطة التعليم الفردية لـ ${esc(child.name)}</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="empty">
+          <div class="ico">${I.clipboard}</div>
+          <h4>لا توجد خطة فردية بعد</h4>
+          <p>لم تقم المعلمة بإنشاء الخطة الفردية حتى الآن</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Extract all goals from the plan
+  let allGoals = [];
+  if (Array.isArray(plan.goals)) {
+    plan.goals.forEach((group, groupIndex) => {
+      if (group && group.shorts && Array.isArray(group.shorts)) {
+        group.shorts.forEach((goalText, goalIndex) => {
+          // Find behavioral goals for this short-term goal
+          const behavioralGoals = (group.behavioral && group.behavioral[goalIndex]) || [];
+          
+          allGoals.push({
+            groupIndex,
+            goalIndex,
+            longTerm: group.longTerm || 'هدف طويل المدى',
+            shortTerm: goalText,
+            behavioral: Array.isArray(behavioralGoals) ? behavioralGoals : [],
+            strategies: group.strategies?.[goalIndex] || [],
+            tools: group.tools?.[goalIndex] || [],
+            reinforcement: group.reinforcement?.[goalIndex] || []
+          });
+        });
+      }
+    });
+  }
+  
+  return `
+    <div class="page-head">
+      <div>
+        <h1>الخطة الفردية 📋</h1>
+        <div class="sub">خطة التعليم الفردية لـ ${esc(child.name)}</div>
+      </div>
+    </div>
+    
+    <div class="card mb-md" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #0ea5e9;">
+      <div class="row" style="gap: 16px; align-items: center;">
+        <div style="font-size: 48px;">📋</div>
+        <div style="flex: 1;">
+          <h3 style="margin: 0 0 8px 0;">معلومات الخطة</h3>
+          <div class="row wrap" style="gap: 16px; font-size: 14px;">
+            <div><strong>الطالبة:</strong> ${esc(child.name)}</div>
+            ${teacher ? `<div><strong>المعلمة:</strong> ${esc(teacher.name)}</div>` : ''}
+            ${plan.createdAt ? `<div><strong>تاريخ الإنشاء:</strong> ${fmtRelative(plan.createdAt)}</div>` : ''}
+            <div><strong>عدد الأهداف:</strong> ${arNum(allGoals.length)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    ${allGoals.length ? `
+      <div class="stack gap-lg">
+        ${allGoals.map((goal, index) => `
+          <div class="card">
+            <div class="card-title" style="background: var(--primary-10); padding: 12px; border-radius: 8px; margin: -16px -16px 16px -16px;">
+              <h3 style="margin: 0;">الهدف ${arNum(index + 1)}</h3>
+            </div>
+            
+            <!-- الهدف طويل المدى -->
+            <div class="field-group" style="margin-bottom: 20px;">
+              <label class="text-bold" style="color: var(--primary); font-size: 15px;">🎯 الهدف طويل المدى</label>
+              <div style="background: var(--canvas); padding: 12px; border-radius: 8px; border-right: 4px solid var(--primary);">
+                ${esc(goal.longTerm)}
+              </div>
+            </div>
+            
+            <!-- الهدف قصير المدى -->
+            <div class="field-group" style="margin-bottom: 20px;">
+              <label class="text-bold" style="color: var(--mint); font-size: 15px;">📍 الهدف قصير المدى</label>
+              <div style="background: var(--mint-10); padding: 12px; border-radius: 8px; border-right: 4px solid var(--mint);">
+                ${esc(goal.shortTerm)}
+              </div>
+            </div>
+            
+            <!-- الأهداف السلوكية التعليمية -->
+            ${goal.behavioral && goal.behavioral.length ? `
+              <div class="field-group" style="margin-bottom: 20px;">
+                <label class="text-bold" style="color: var(--amber); font-size: 15px;">✏️ الأهداف السلوكية التعليمية</label>
+                <div class="stack gap-xs" style="margin-top: 8px;">
+                  ${goal.behavioral.map((beh, idx) => `
+                    <div style="background: var(--amber-10); padding: 10px 12px; border-radius: 6px; display: flex; gap: 8px;">
+                      <div style="font-weight: bold; color: var(--amber);">${arNum(idx + 1)}.</div>
+                      <div style="flex: 1;">${esc(beh)}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+            
+            <!-- الوسائل التعليمية -->
+            ${goal.tools && goal.tools.length ? `
+              <div class="field-group" style="margin-bottom: 20px;">
+                <label class="text-bold" style="font-size: 15px;">🧩 الوسائل التعليمية المستخدمة</label>
+                <div style="background: var(--canvas); padding: 12px; border-radius: 8px;">
+                  ${goal.tools.map(tool => `<span class="pill soft" style="margin: 4px;">${esc(tool)}</span>`).join('')}
+                </div>
+              </div>
+            ` : ''}
+            
+            <!-- أساليب التدريس -->
+            ${goal.strategies && goal.strategies.length ? `
+              <div class="field-group" style="margin-bottom: 20px;">
+                <label class="text-bold" style="font-size: 15px;">📚 أساليب التدريس</label>
+                <div style="background: var(--canvas); padding: 12px; border-radius: 8px;">
+                  ${goal.strategies.map(strat => `<span class="pill soft" style="margin: 4px;">${esc(strat)}</span>`).join('')}
+                </div>
+              </div>
+            ` : ''}
+            
+            <!-- أساليب التعزيز -->
+            ${goal.reinforcement && goal.reinforcement.length ? `
+              <div class="field-group">
+                <label class="text-bold" style="font-size: 15px;">⭐ أساليب التعزيز</label>
+                <div style="background: var(--canvas); padding: 12px; border-radius: 8px;">
+                  ${goal.reinforcement.map(reinf => `<span class="pill soft" style="margin: 4px;">${esc(reinf)}</span>`).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </div>
+    ` : `
+      <div class="card">
+        <div class="empty">
+          <div class="ico">${I.clipboard}</div>
+          <h4>لا توجد أهداف محددة</h4>
         </div>
       </div>
     `}
