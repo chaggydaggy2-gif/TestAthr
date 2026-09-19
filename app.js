@@ -1922,6 +1922,7 @@ function renderSpecialEdIEP(st) {
       ${iep.pdf_upload ? `
         <button class="btn ghost sm" data-action="view-iep-pdf" data-sid="${st.id}">${I.eye}<span>عرض PDF</span></button>
       ` : ''}
+      <button class="btn danger-soft sm" data-action="delete-special-ed-iep" data-sid="${st.id}">${I.trash}<span>حذف الخطة</span></button>
     </div>
 
     <div class="card mb-md">
@@ -8256,6 +8257,63 @@ async function viewIEPPDF(sid) {
   } catch (error) {
     console.error('Error viewing IEP PDF:', error);
     toast('حدث خطأ أثناء فتح الملف', 'error');
+  }
+}
+
+async function deleteSpecialEdIEP(sid) {
+  const st = studentBy(sid);
+  if (!st) return;
+  
+  // Confirm deletion
+  const confirmed = confirm(`هل أنتِ متأكدة من حذف الخطة الفردية لـ ${st.name}؟\n\nسيتم حذف جميع البيانات:\n• الأهداف الفصلية\n• الأهداف قصيرة المدى\n• الأهداف السلوكية\n• الوسائل والأساليب\n• ملف PDF (إن وجد)\n\nهذا الإجراء لا يمكن التراجع عنه!`);
+  
+  if (!confirmed) return;
+  
+  try {
+    // Delete PDF from storage if exists
+    if (st.special_ed_iep?.pdf_upload) {
+      const { error: storageError } = await window.supabaseClient.storage
+        .from('student-documents')
+        .remove([st.special_ed_iep.pdf_upload]);
+      
+      if (storageError) {
+        console.warn('Failed to delete PDF from storage:', storageError);
+        // Continue anyway - we still want to delete the IEP data
+      }
+    }
+    
+    // Clear IEP data
+    st.special_ed_iep = {
+      current_level: '',
+      strengths: '',
+      needs: '',
+      semester_goals: [],
+      short_term_goals: [],
+      behavioral_goals: [],
+      teaching_tools: [],
+      teaching_strategies: [],
+      reinforcement_methods: [],
+      start_date: null,
+      end_date: null,
+      pdf_upload: null
+    };
+    
+    // Update in Supabase
+    const { error } = await window.supabaseClient
+      .from('students')
+      .update({ special_ed_iep: st.special_ed_iep })
+      .eq('id', sid);
+    
+    if (error) throw error;
+    
+    persistState();
+    toast('✅ تم حذف الخطة الفردية بنجاح');
+    
+    // Reload the page
+    handleRoute();
+  } catch (error) {
+    console.error('Error deleting IEP:', error);
+    toast('حدث خطأ أثناء حذف الخطة', 'error');
   }
 }
 
