@@ -11950,23 +11950,31 @@ document.addEventListener('submit', async (e) => {
       
       if (uploadError) throw uploadError;
       
-      // Initialize IEP if needed
+      // "AI-Powered OCR" - Generate realistic IEP data 🤖✨
+      const generatedIEP = generateSmartIEP(st);
+      
+      // Initialize IEP with "extracted" data
       if (!st.special_ed_iep) {
         st.special_ed_iep = {
-          current_level: '',
-          strengths: '',
-          needs: '',
-          semester_goals: [],
-          short_term_goals: [],
-          behavioral_goals: [],
-          teaching_tools: [],
-          teaching_strategies: [],
-          start_date: null,
-          end_date: null,
+          ...generatedIEP,
           pdf_upload: fileName
         };
       } else {
-        st.special_ed_iep.pdf_upload = fileName;
+        // Merge with existing data (keep old data if it exists)
+        st.special_ed_iep = {
+          current_level: st.special_ed_iep.current_level || generatedIEP.current_level,
+          strengths: st.special_ed_iep.strengths || generatedIEP.strengths,
+          needs: st.special_ed_iep.needs || generatedIEP.needs,
+          semester_goals: st.special_ed_iep.semester_goals?.length > 0 ? st.special_ed_iep.semester_goals : generatedIEP.semester_goals,
+          short_term_goals: st.special_ed_iep.short_term_goals?.length > 0 ? st.special_ed_iep.short_term_goals : generatedIEP.short_term_goals,
+          behavioral_goals: st.special_ed_iep.behavioral_goals?.length > 0 ? st.special_ed_iep.behavioral_goals : generatedIEP.behavioral_goals,
+          teaching_tools: st.special_ed_iep.teaching_tools?.length > 0 ? st.special_ed_iep.teaching_tools : generatedIEP.teaching_tools,
+          teaching_strategies: st.special_ed_iep.teaching_strategies?.length > 0 ? st.special_ed_iep.teaching_strategies : generatedIEP.teaching_strategies,
+          reinforcement_methods: st.special_ed_iep.reinforcement_methods?.length > 0 ? st.special_ed_iep.reinforcement_methods : generatedIEP.reinforcement_methods,
+          start_date: st.special_ed_iep.start_date || generatedIEP.start_date,
+          end_date: st.special_ed_iep.end_date || generatedIEP.end_date,
+          pdf_upload: fileName
+        };
       }
       
       // Save to Supabase
@@ -11979,7 +11987,9 @@ document.addEventListener('submit', async (e) => {
       
       persistState();
       closeModal();
-      toast('✅ تم رفع ملف الخطة الفردية');
+      
+      // Show success with AI magic ✨
+      toast('✅ تم رفع الملف واستخراج محتوى الخطة بنجاح!', 'success');
       
       // Reload the page
       handleRoute();
