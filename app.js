@@ -5179,6 +5179,11 @@ document.addEventListener('click', async (e) => {
       openSpecialEdIEPModal(sid);
       return;
     }
+    if (a === 'delete-special-ed-iep') {
+      const sid = action.getAttribute('data-sid');
+      deleteSpecialEdIEP(sid);
+      return;
+    }
     if (a === 'upload-iep-pdf') {
       const sid = action.getAttribute('data-sid');
       openIEPPDFUploadModal(sid);
