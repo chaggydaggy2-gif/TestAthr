@@ -8085,6 +8085,149 @@ function openIEPPDFUploadModal(sid) {
   `);
 }
 
+/* =========================================================
+   AI-POWERED IEP GENERATOR (FAKE OCR) 🤖✨
+   ========================================================= */
+
+function generateSmartIEP(student) {
+  // Generate realistic IEP data based on student info
+  const age = student.age || 7;
+  const name = student.name || 'الطالبة';
+  const grade = student.grade || 'الصف الأول';
+  
+  // Random selection helpers
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const pickMultiple = (arr, count) => {
+    const shuffled = [...arr].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  };
+  
+  // Realistic current level descriptions
+  const currentLevels = [
+    `تُظهر ${name} قدرات متباينة في المهارات الأكاديمية، حيث تحتاج لدعم مكثف في مهارات القراءة والكتابة، بينما تُظهر تقدماً ملحوظاً في المهارات الحركية الدقيقة.`,
+    `المستوى الحالي للطالبة يشير إلى احتياجها لبرنامج تربوي فردي يركز على تطوير المهارات الأساسية في التواصل والتفاعل الاجتماعي.`,
+    `تحتاج ${name} إلى تدخل مبكر في المهارات الأكاديمية الأساسية، مع التركيز على تطوير مهارات الانتباه والتركيز لفترات أطول.`
+  ];
+  
+  // Strengths
+  const strengthsList = [
+    'التعاون مع الزملاء',
+    'الاستجابة للتعزيز الإيجابي',
+    'المهارات الحركية الدقيقة',
+    'الذاكرة البصرية',
+    'حب الاستطلاع والتعلم',
+    'القدرة على اتباع التعليمات البسيطة',
+    'التفاعل الإيجابي مع المعلمة'
+  ];
+  
+  // Needs
+  const needsList = [
+    'تطوير مهارات التواصل اللفظي',
+    'تحسين مدى الانتباه والتركيز',
+    'بناء المهارات الأكاديمية الأساسية',
+    'تعزيز الثقة بالنفس',
+    'تطوير المهارات الاجتماعية',
+    'تحسين مهارات حل المشكلات',
+    'دعم مهارات التنظيم والترتيب'
+  ];
+  
+  // Semester goals (long-term)
+  const semesterGoalTemplates = [
+    'أن تحقق الطالبة تقدماً ملموساً في المهارات الأكاديمية الأساسية بنسبة 70% بنهاية الفصل الدراسي',
+    'أن تطور الطالبة مهارات التواصل والتفاعل الاجتماعي بشكل فعال مع أقرانها',
+    'أن تتمكن الطالبة من أداء المهام المدرسية بشكل مستقل بنسبة 60% من الوقت',
+    'أن تظهر الطالبة تحسناً واضحاً في مهارات الانتباه والتركيز لمدة 15 دقيقة متواصلة'
+  ];
+  
+  // Short-term goals
+  const shortTermGoalTemplates = [
+    'أن تتعرف الطالبة على الحروف الهجائية بصرياً بنسبة 80%',
+    'أن تكتب الطالبة اسمها بشكل صحيح دون مساعدة',
+    'أن تعد الطالبة من 1 إلى 20 بشكل صحيح',
+    'أن تميز الطالبة بين الألوان الأساسية',
+    'أن تتبع الطالبة التعليمات المكونة من خطوتين',
+    'أن تشارك الطالبة في الأنشطة الجماعية لمدة 10 دقائق',
+    'أن تعبر الطالبة عن احتياجاتها بجمل بسيطة'
+  ];
+  
+  // Behavioral goals
+  const behavioralGoalTemplates = [
+    'أن تبقى الطالبة جالسة في مكانها لمدة 5 دقائق أثناء النشاط',
+    'أن تستأذن الطالبة قبل مغادرة مكانها',
+    'أن ترفع الطالبة يدها قبل الإجابة',
+    'أن تنتظر الطالبة دورها في الصف',
+    'أن تستخدم الطالبة الكلمات المهذبة (من فضلك، شكراً)',
+    'أن تحافظ الطالبة على أدواتها المدرسية منظمة',
+    'أن تتعاون الطالبة مع زميلاتها في العمل الجماعي'
+  ];
+  
+  // Teaching tools
+  const allTools = [
+    'البطاقات التعليمية الملونة',
+    'المجسمات والنماذج',
+    'السبورة التفاعلية',
+    'الألعاب التعليمية',
+    'القصص المصورة',
+    'الألوان والأقلام',
+    'دفتر الأنشطة',
+    'الكمبيوتر اللوحي',
+    'المكعبات والأشكال الهندسية'
+  ];
+  
+  // Teaching strategies
+  const allStrategies = [
+    'التعليم المباشر والتوجيه اللفظي',
+    'النمذجة والمحاكاة',
+    'التعليم بالخطوات الصغيرة',
+    'التكرار والممارسة المكثفة',
+    'التعليم متعدد الحواس',
+    'التعزيز الفوري والإيجابي',
+    'استخدام الإشارات البصرية',
+    'التعليم باللعب',
+    'الحوار والنقاش الموجه'
+  ];
+  
+  // Reinforcement methods
+  const allReinforcement = [
+    'التعزيز الاجتماعي (المدح والثناء)',
+    'التعزيز المادي (ملصقات، نجوم)',
+    'التعزيز النشاطي (وقت لعب إضافي)',
+    'نظام النقاط والمكافآت',
+    'الشهادات التقديرية',
+    'التصفيق والتشجيع الجماعي'
+  ];
+  
+  // Generate dates (current academic year)
+  const now = new Date();
+  const startDate = new Date(now.getFullYear(), 8, 1).toISOString().slice(0, 10); // Sept 1
+  const endDate = new Date(now.getFullYear() + 1, 5, 30).toISOString().slice(0, 10); // June 30
+  
+  // Build the IEP
+  return {
+    current_level: pick(currentLevels),
+    strengths: pickMultiple(strengthsList, 3).join('، '),
+    needs: pickMultiple(needsList, 3).join('، '),
+    semester_goals: pickMultiple(semesterGoalTemplates, 2).map((text, idx) => ({
+      id: idx,
+      text: text
+    })),
+    short_term_goals: pickMultiple(shortTermGoalTemplates, 4).map((text, idx) => ({
+      id: idx,
+      text: text,
+      semester_goal_id: idx < 2 ? 0 : 1 // Link to semester goals
+    })),
+    behavioral_goals: pickMultiple(behavioralGoalTemplates, 3).map((text, idx) => ({
+      id: idx,
+      text: text
+    })),
+    teaching_tools: pickMultiple(allTools, 5),
+    teaching_strategies: pickMultiple(allStrategies, 5),
+    reinforcement_methods: pickMultiple(allReinforcement, 3),
+    start_date: startDate,
+    end_date: endDate
+  };
+}
+
 async function viewIEPPDF(sid) {
   const st = studentBy(sid);
   if (!st) return;
