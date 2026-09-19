@@ -655,6 +655,7 @@ async function handleRoute() {
       teachers:  viewPrincipalTeachers,
       students:  viewPrincipalStudents,
       student:   () => viewStudentProfile(id, 'principal'),
+      ieps:      viewPrincipalIEPs,
       reports:   viewPrincipalReports,
       settings:  () => viewSettings('principal'),
     })[screen];
@@ -822,6 +823,7 @@ function navFor(role) {
       { href: '#/principal/dashboard',  label: 'الرئيسية',  icon: I.home },
       { href: '#/principal/teachers',   label: 'المعلمات',  icon: I.users },
       { href: '#/principal/students',   label: 'الطالبات',  icon: I.student },
+      { href: '#/principal/ieps',       label: 'الخطط الفردية', icon: I.clipboard },
       { href: '#/principal/reports',    label: 'التقارير',  icon: I.chart },
       { href: '#/principal/settings',   label: 'الإعدادات', icon: I.settings },
     ];
@@ -5182,6 +5184,11 @@ document.addEventListener('click', async (e) => {
       return;
     }
     if (a === 'view-iep-pdf') {
+      const sid = action.getAttribute('data-sid');
+      viewIEPPDF(sid);
+      return;
+    }
+    if (a === 'view-principal-iep-pdf') {
       const sid = action.getAttribute('data-sid');
       viewIEPPDF(sid);
       return;
@@ -11300,6 +11307,147 @@ function viewPrincipalStudents() {
         `).join('')}
       </div>
     `}
+  `;
+}
+
+/* =========================================================
+   PRINCIPAL - IEPs VIEW
+   ========================================================= */
+function viewPrincipalIEPs() {
+  const students = STATE.data.students.filter(s => !s.archived);
+  
+  // Separate students by teacher type
+  const speechStudents = students.filter(s => {
+    const teacher = userBy(s.teacher_id);
+    return teacher?.teacher_type === 'speech_therapy';
+  });
+  
+  const specialEdStudents = students.filter(s => {
+    const teacher = userBy(s.teacher_id);
+    return teacher?.teacher_type === 'special_education' || teacher?.teacher_type === 'special_ed';
+  });
+  
+  // Get stats
+  const speechWithIEP = speechStudents.filter(s => {
+    const plan = STATE.data.plans.find(p => p.studentId === s.id);
+    return plan && plan.groups && plan.groups.length > 0;
+  }).length;
+  
+  const specialEdWithIEP = specialEdStudents.filter(s => {
+    return s.special_ed_iep && (
+      s.special_ed_iep.semester_goals?.length > 0 ||
+      s.special_ed_iep.short_term_goals?.length > 0 ||
+      s.special_ed_iep.pdf_upload
+    );
+  }).length;
+  
+  return `
+    <div class="page-head">
+      <div>
+        <h1>الخطط الفردية 📋</h1>
+        <div class="sub">عرض شامل لجميع الخطط التربوية الفردية</div>
+      </div>
+    </div>
+
+    <div class="grid cols-2 mb-md">
+      ${statCard('mint', I.clipboard, arNum(speechWithIEP), `خطط النطق (من ${arNum(speechStudents.length)})`)}
+      ${statCard('amber', I.clipboard, arNum(specialEdWithIEP), `خطط التربية الخاصة (من ${arNum(specialEdStudents.length)})`)}
+    </div>
+
+    <div class="card mb-md">
+      <div class="card-title">
+        <h3>🗣️ خطط معلمات النطق</h3>
+      </div>
+      ${speechStudents.length === 0 ? `
+        <div class="empty">
+          <div class="ico">${I.search}</div>
+          <h4>لا توجد طالبات</h4>
+          <p>لم يتم تعيين طالبات لمعلمات النطق بعد</p>
+        </div>
+      ` : `
+        <div class="stack gap-sm">
+          ${speechStudents.map(st => {
+            const teacher = userBy(st.teacher_id);
+            const plan = STATE.data.plans.find(p => p.studentId === st.id);
+            const hasGroups = plan && plan.groups && Array.isArray(plan.groups) && plan.groups.length > 0;
+            const totalGoals = hasGroups ? plan.groups.reduce((sum, g) => sum + (g.shorts?.length || 0), 0) : 0;
+            
+            return `
+              <div class="row between" style="padding:12px;background:var(--canvas);border-radius:10px;align-items:center">
+                <div class="row" style="gap:12px;flex:1">
+                  ${avatar(st, 'md')}
+                  <div style="flex:1">
+                    <div class="text-bold">${esc(st.name)}</div>
+                    <div class="text-xs text-muted">${esc(st.grade)} • ${teacher ? esc(teacher.name) : 'غير معين'}</div>
+                  </div>
+                </div>
+                ${hasGroups ? `
+                  <div style="text-align:center;min-width:100px">
+                    <div class="text-xs text-muted">الأهداف</div>
+                    <div class="text-bold" style="color:var(--mint)">${arNum(totalGoals)}</div>
+                  </div>
+                  <a class="btn soft sm" href="#/principal/student/${st.id}?tab=plan" data-route="#/principal/student/${st.id}">
+                    ${I.eye}<span>عرض الخطة</span>
+                  </a>
+                ` : `
+                  <span class="pill soft">لم تُولَّد بعد</span>
+                `}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <h3>📚 خطط معلمات التربية الخاصة</h3>
+      </div>
+      ${specialEdStudents.length === 0 ? `
+        <div class="empty">
+          <div class="ico">${I.search}</div>
+          <h4>لا توجد طالبات</h4>
+          <p>لم يتم تعيين طالبات لمعلمات التربية الخاصة بعد</p>
+        </div>
+      ` : `
+        <div class="stack gap-sm">
+          ${specialEdStudents.map(st => {
+            const teacher = userBy(st.teacher_id);
+            const iep = st.special_ed_iep || {};
+            const hasIEP = iep.semester_goals?.length > 0 || iep.short_term_goals?.length > 0 || iep.pdf_upload;
+            const totalGoals = (iep.semester_goals?.length || 0) + (iep.short_term_goals?.length || 0) + (iep.behavioral_goals?.length || 0);
+            
+            return `
+              <div class="row between" style="padding:12px;background:var(--canvas);border-radius:10px;align-items:center">
+                <div class="row" style="gap:12px;flex:1">
+                  ${avatar(st, 'md')}
+                  <div style="flex:1">
+                    <div class="text-bold">${esc(st.name)}</div>
+                    <div class="text-xs text-muted">${esc(st.grade)} • ${teacher ? esc(teacher.name) : 'غير معين'}</div>
+                  </div>
+                </div>
+                ${hasIEP ? `
+                  <div style="text-align:center;min-width:100px">
+                    <div class="text-xs text-muted">الأهداف</div>
+                    <div class="text-bold" style="color:var(--mint)">${arNum(totalGoals)}</div>
+                  </div>
+                  ${iep.pdf_upload ? `
+                    <button class="btn ghost sm" data-action="view-principal-iep-pdf" data-sid="${st.id}">
+                      ${I.download}<span>PDF</span>
+                    </button>
+                  ` : ''}
+                  <a class="btn soft sm" href="#/principal/student/${st.id}?tab=plan" data-route="#/principal/student/${st.id}">
+                    ${I.eye}<span>عرض الخطة</span>
+                  </a>
+                ` : `
+                  <span class="pill soft">لم تُنشأ بعد</span>
+                `}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    </div>
   `;
 }
 
